@@ -1,0 +1,6 @@
+--c99 -c --cpu Cortex-M4.fp -D__MICROLIB -g -O0 --apcs=interwork --split_sections -I ..\..\GD32F4xx_Firmware_Library\Firmware\CMSIS -I ..\..\GD32F4xx_Firmware_Library\Firmware\CMSIS\GD\GD32F4xx\Include -I ..\..\GD32F4xx_Firmware_Library\Firmware\GD32F4xx_standard_peripheral\Include -I ..\..\mdk -I ..\..\FreeRTOS -I ..\..\FreeRTOS\include -I ..\..\FreeRTOS\portable\RVDS\ARM_CM4F -I ..\..\src\drivers -I ..\..\src\api -I ..\..\src\app -I ..\..\src\Common\inc
+-I.\RTE\_Target_1
+-IC:\Users\Administrator\AppData\Local\Arm\Packs\GigaDevice\GD32F4xx_DFP\3.0.0\Device\F4XX\Include
+-IC:\Keil_v5\ARM\CMSIS\Include
+-D__UVISION_VERSION="523" -DGD32F450 -DUSE_STDPERIPH_DRIVER -DGD32F450 -D__TARGET_FPU_VFP
+-o .\objects\gps.o --omf_browse .\objects\gps.crf --depend .\objects\gps.d "..\..\src\app\gps.c"

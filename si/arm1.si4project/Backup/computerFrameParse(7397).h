@@ -1,0 +1,22 @@
+#ifndef ____COMPUTER_FRAME_PARSE_H____
+#define ____COMPUTER_FRAME_PARSE_H____
+
+#include "gd32f4xx.h"
+
+#define FRAME_HEAD						0xAF55FA
+#define FrameHead_Index					2
+#define FRAME_END						0xFF
+
+#define CMD_SET_OUTPUT_FORMAT			0xAA11
+#define CMD_SET_SERIAL_CONFIG			0xAA13
+#define CMD_SET_SAVE_CONFIG				0xAA23
+#define CMD_SET_READ_CONFIG				0xAA24
+#define CMD_SET_SYS_MODE				0xAA26
+#define CMD_SET_MECHAN_MIGRA			0xAA18
+#define CMD_SET_COURSE_ANGLE			0xAA21
+#define CMD_SET_USER_AXIS				0xAA1E
+#define CMD_SET_ZERO_OFFSET_TIME		0xAA25
+#define CMD_SET_GNSS_BASELINE			0xAA20
+//#define CMD_SET_GNSS_BASELINE			0xAA20
+
+#endif // ____COMPUTER_FRAME_PARSE_H____
