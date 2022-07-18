@@ -182,5 +182,21 @@ void nav_gnss_task(void* arg)
     }
 }
 
+void nav_task_create(void)
+{
+	xTaskCreate( nav_gnss_task,
+                 "nav_gnss_task",
+                 configMINIMAL_STACK_SIZE,
+                 ( void * ) NULL,
+                 tskIDLE_PRIORITY + 8,
+                 (TaskHandle_t*)&task_gnss_handler );
+    xTaskCreate( nav_imu_task,
+                 "nav_task",
+                 configMINIMAL_STACK_SIZE,
+                 ( void * ) NULL,
+                 tskIDLE_PRIORITY + 9,
+                 (TaskHandle_t*)&task_imu_handler );
+}
+
 #endif
 

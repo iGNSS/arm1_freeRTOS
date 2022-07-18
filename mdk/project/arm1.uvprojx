@@ -423,6 +423,16 @@
               <FileType>1</FileType>
               <FilePath>..\..\src\app\nav_task.c</FilePath>
             </File>
+            <File>
+              <FileName>gnssTask.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\src\app\gnssTask.c</FilePath>
+            </File>
+            <File>
+              <FileName>imuTask.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\src\app\imuTask.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

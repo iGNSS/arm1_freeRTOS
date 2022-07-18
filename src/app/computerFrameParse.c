@@ -1,11 +1,19 @@
 #include "computerFrameParse.h"
 #include "data_convert.h"
 #include "serial.h"
+#include "uartadapter.h"
 
 #include "gnss.h"
 
-//INSDataTypeDef hINSData;
-//FPGA_FRAME_DEF hINSFPGAData;
+/* Kernel includes. */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
+#include "semphr.h"
+#include "event_groups.h"
+
+QueueHandle_t xCommQueue;
+
 uint8_t fpga_data_read_flag;
 AppSettingTypeDef hSetting;
 AppSettingTypeDef hDefaultSetting;
@@ -241,6 +249,66 @@ void comm_handle(void)
         //gd32_usart_write(usart_rx_data.usart_rx_buffer, usart_rx_data.usart_rx_count);
     }
 }
+
+#if (configUse_COMM == COMM_MODE_RS422)
+#include "nav_task.h"
+
+static uint8_t fpga_comm1_rxbuffer[COMM_BUFFER_SIZE];
+static uint16_t rs422_comm1_len = 0;
+
+void rs422_comm1_rx(void)
+{
+	uint8_t status;
+    rs422_comm1_len = Uart_RecvMsg(UART_RXPORT_COMPLEX_8, COMM_BUFFER_SIZE, fpga_comm1_rxbuffer);
+    if(rs422_comm1_len)
+    {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        status = 2;
+        xQueueSendFromISR(xCommQueue, &status, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+}
+extern EXPORT_RESULT  g_Export_Result;
+void rs422_comm1_task(void* arg)
+{
+    uint8_t status;
+    for( ;; )
+    {
+        if(pdTRUE == xQueueReceive( xCommQueue, &status, pdMS_TO_TICKS(100)))//portMAX_DELAY
+        {
+            if(1 == status)//串口发送至上位机
+            {
+                frame_pack_and_send(&g_Export_Result, &hGPSData);
+                //frame_writeDram();
+                //Oscilloscope();
+            }
+            else if(2 == status)//解析上位机数据
+            {
+                frameParse(fpga_comm1_rxbuffer, rs422_comm1_len);
+                rs422_comm1_len = 0;
+            }
+        }
+
+    }
+}
+
+void rs422_task_create(void)
+{
+	xTaskCreate( rs422_comm1_task,
+                 "rs422_comm1_task",
+                 configMINIMAL_STACK_SIZE,
+                 ( void * ) NULL,
+                 tskIDLE_PRIORITY + 4,
+                 NULL );
+}
+
+void rs422_comm1_init(void)
+{
+	xCommQueue = xQueueCreate(10, sizeof(uint8_t));
+    configASSERT( xCommQueue );
+}
+
+#endif
 
 EventStatus usart_dispose_recvDataTask(void)
 {

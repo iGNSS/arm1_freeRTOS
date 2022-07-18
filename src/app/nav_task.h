@@ -81,6 +81,7 @@ COMMON_EXT void nav_imu_task(void* arg);
 COMMON_EXT void nav_gnss_task(void* arg);
 COMMON_EXT void imu_notify(void);
 COMMON_EXT void gnss_notify(void);
+COMMON_EXT void nav_task_create(void);
 
 
 #ifdef __cplusplus

@@ -3,6 +3,8 @@
 
 #include "gd32f4xx.h"
 
+#define COMM_BUFFER_SIZE            	256
+
 #define FRAME_HEAD						0xAF55FA
 #define FrameHead_Index					2
 #define FRAME_END						0xFF
@@ -146,6 +148,10 @@ uint8_t frame_setting_is_update(void);
 EventStatus usart_dispose_recvDataTask(void);
 void frameParse(uint8_t* pData, uint16_t len);
 void comm_handle(void);
+void rs422_comm1_rx(void);
+void rs422_comm1_task(void* arg);
+void rs422_comm1_init(void);
+void rs422_task_create(void);
 
 
 
