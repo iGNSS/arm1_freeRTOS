@@ -2,7 +2,7 @@
 #include "data_convert.h"
 #include "serial.h"
 
-//#include "bsp_sys.h"
+#include "gnss.h"
 
 //INSDataTypeDef hINSData;
 //FPGA_FRAME_DEF hINSFPGAData;
@@ -11,13 +11,19 @@ AppSettingTypeDef hSetting;
 AppSettingTypeDef hDefaultSetting;
 uint8_t setting_update = 0;
 
-#define	comm_send_end_frame()	\
-    do \
-    { \
-        uint8_t  frameEnd[4] = {0xFA, 0x55, 0x00,0xFF}; \
-        gd32_usart_write(frameEnd, 4); \
-    }while(0)
+void comm_send_end_frame(uint16_t cmd)
+{
+    uint8_t  frameEnd[6];
+    frameEnd[0] = 0xFA;
+    frameEnd[1] = 0x55;
+    frameEnd[2] = cmd >> 8;
+    frameEnd[3] = cmd;
+    frameEnd[4] = 0x00;
+    frameEnd[5] = 0xFF;
 
+    gd32_usart_write(frameEnd, 6);
+
+}
 uint8_t frame_setting_is_update(void)
 {
     return setting_update;
@@ -149,6 +155,11 @@ void frameParse(uint8_t* pData, uint16_t len)
                     tData[2] = *(pDat + 10);
                     tData[3] = *(pDat + 11);
                     hSetting.gnssMechanicalMigration_z = hex2Float(tData);
+
+					gnss_set_leverArm(hSetting.gnssMechanicalMigration_x, 
+										hSetting.gnssMechanicalMigration_x, 
+										hSetting.gnssMechanicalMigration_x, 
+										0.0, 0.0, 0.0);
                 }
 
                 break;
@@ -200,7 +211,7 @@ void frameParse(uint8_t* pData, uint16_t len)
             case CMD_SET_ALL:
                 if((*(pDat + 61)) == FRAME_END)
                 {
-                    
+
                 }
 
                 break;
@@ -210,7 +221,7 @@ void frameParse(uint8_t* pData, uint16_t len)
         }
     }
 
-    comm_send_end_frame();
+    comm_send_end_frame(tCmd);
 }
 
 static struct
@@ -222,7 +233,7 @@ static struct
 
 void comm_handle(void)
 {
-    usart_rx_data.usart_rx_count = gd32_usart_read(usart_rx_data.usart_rx_buffer, 0);
+    usart_rx_data.usart_rx_count = gd32_usart_read(usart_rx_data.usart_rx_buffer, USART_SERIAL_RB_BUFSZ);
 
     if(usart_rx_data.usart_rx_count)
     {
@@ -258,8 +269,8 @@ EventStatus usart_dispose_recvDataTask(void)
 
             if(usart_rx_data.usart_rx_count >= 5)
             {
-                //frameParse(usart_rx_data.usart_rx_buffer, usart_rx_data.usart_rx_count);
-                gd32_usart_write(usart_rx_data.usart_rx_buffer, usart_rx_data.usart_rx_count);
+                frameParse(usart_rx_data.usart_rx_buffer, usart_rx_data.usart_rx_count);
+                //gd32_usart_write(usart_rx_data.usart_rx_buffer, usart_rx_data.usart_rx_count);
             }
 
             usart_rx_data.usart_rx_count = 0;

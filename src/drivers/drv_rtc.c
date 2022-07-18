@@ -228,12 +228,6 @@ rtc_update_struct* rtc_update(void)
     str2time(rtc_str, 0, strlen(rtc_str), &rtc_tt);
     rtc_update_info.gpsTime = time2gpst(rtc_tt, (int*)&rtc_update_info.gpsWeek);
 
-    #ifdef	configUse_SEGGER_RTT
-    SEGGER_RTT_printf(0, "Current time: %s \n\r", rtc_str);
-    #else
-    //printf("Current time: %s \n\r", rtc_str);
-    #endif
-
     timeUpdate(&rtc_initpara);
         
     return &rtc_update_info;
@@ -261,15 +255,19 @@ uint8_t WeekYearday(int years, int months, int days)
 uint8_t rtc_gnss_adjust_time(void) 
 {
     uint8_t ret = INS_EOK;
-    ARM1_TO_KALAM_MIX_TypeDef*  pGnss = gnss_get_algorithm_dataPtr();
+    uint8_t hour;
+    GPS_AGRIC_TypeDef*  pGnss = gnss_get_algorithm_dataPtr();
 
+	if(INS_EOK != gnss_time_is_valid())return INS_ERROR;
     /* setup RTC time value */
     rtc_initpara.factor_asyn = prescaler_a;
     rtc_initpara.factor_syn = prescaler_s;
     rtc_initpara.year = DEC2BCD(pGnss->utc_year);
     rtc_initpara.month = DEC2BCD(pGnss->utc_month);
     rtc_initpara.date = DEC2BCD(pGnss->utc_day);
-    rtc_initpara.hour   = DEC2BCD(pGnss->utc_hour);
+    hour = pGnss->utc_hour + 8;//时区+8
+    hour %= 24;
+    rtc_initpara.hour   = DEC2BCD(hour);
     rtc_initpara.minute = DEC2BCD(pGnss->utc_min);
     rtc_initpara.second = DEC2BCD(pGnss->utc_sec);
     rtc_initpara.day_of_week = WeekYearday(pGnss->utc_year, pGnss->utc_month, pGnss->utc_day);

@@ -6,6 +6,10 @@
 #include "Time_Unify.h"
 #include "arm_math.h"
 #include "nav_task.h"
+#include "DRamAdapter.h"
+
+#include "drv_usart.h"
+#include "main.h"
 
 /* Kernel includes. */
 #include "FreeRTOS.h"
@@ -15,19 +19,22 @@
 #include "event_groups.h"
 
 
-GPSDataTypeDef hGPSData;						//GPS数据
 
-GNSS_BestPos_DataTypeDef hGPSBestPosData;		//最佳位置
-GNSS_BestVel_DataTypeDef hGPSBestVelData;		//最佳速度
-GNSS_Heading_DataTypeDef hGPSHeadingData;		//方位角信息
-GNSS_ZDA_DataTypeDef hGPSZdaData;				//时间日期信息
-GNSS_TRA_DataTypeDef hGPSTraData;				//方向角信息
-GNSS_VTG_DataTypeDef hGPSVtgData;				//地面速度
-GNSS_RMC_DataTypeDef hGPSRmcData;				//推荐定位信息
-GNSS_GGA_DataTypeDef hGPSGgaData;				//定位信息
-GPS_AGRIC_TypeDef    hGPSAgricData;
 
-ARM1_TO_KALAM_MIX_TypeDef g_algorithm;
+
+GPSDataTypeDef hGPSData;							//GPS数据
+
+GNSS_BestPos_DataTypeDef 	hGPSBestPosData;		//最佳位置
+GNSS_BestVel_DataTypeDef 	hGPSBestVelData;		//最佳速度
+GNSS_Heading_DataTypeDef 	hGPSHeadingData;		//方位角信息
+GNSS_ZDA_DataTypeDef 		hGPSZdaData;			//时间日期信息
+GNSS_TRA_DataTypeDef 		hGPSTraData;			//方向角信息
+GNSS_VTG_DataTypeDef 		hGPSVtgData;			//地面速度
+GNSS_RMC_DataTypeDef 		hGPSRmcData;			//推荐定位信息
+GNSS_GGA_DataTypeDef 		hGPSGgaData;			//定位信息
+GPS_AGRIC_TypeDef    		hGPSAgricData;
+GNSS_TIME_SYN_DataTypeDef	hGPSTimeSyn;			//与arm2时间同步
+
 
 uint8_t gCmdIndex = 0;
 uint8_t gCmdTypeIndex = 0;
@@ -136,6 +143,12 @@ uint8_t gnss_gprmcIsLocation(uint8_t *pBuffer, uint8_t BufferLen)
     return INS_ERROR;
 }
 
+uint8_t gnss_isLocation(void)
+{
+    return (hGPSRmcData.valid == 'A')?INS_EOK:INS_ERROR;
+}
+
+
 int GNSS_Cmd_Kind_Parser(char* pData, uint16_t dataLen)
 {
     int cmdKind = 0;
@@ -159,7 +172,7 @@ int GNSS_Cmd_Parser(char* pData)
     		||(0 == strncmp("$GPRMC", (char const *)pData, 6))
     		||(0 == strncmp("$GLRMC", (char const *)pData, 6)))
     {
-	    gnssSynFlg |= (0x1 << 0);
+	    //gnssSynFlg |= (0x1 << 0);
 	    gCmdTypeIndex = 1;
     }
     else if((0 == strncmp("$GNGGA", (char const *)pData, 6))
@@ -179,21 +192,22 @@ int GNSS_Cmd_Parser(char* pData)
     		||(0 == strncmp("$GPZDA", (char const *)pData, 6))
     		||(0 == strncmp("$GLZDA", (char const *)pData, 6)))
     {
-	    gnssSynFlg |= (0x1 << 1);
+	    //gnssSynFlg |= (0x1 << 1);
 	    gCmdTypeIndex = 4;
     }
     else if(0 == strncmp("#HEADINGA", (char const *)pData, 9))
     {
-	    gnssSynFlg |= (0x1 << 2);
+	    //gnssSynFlg |= (0x1 << 0);
 	    gCmdTypeIndex = 5;
     }
     else if(0 == strncmp("#BESTPOSA", (char const *)pData, 9))
     {
-	    //gnssSynFlg |= (0x1 << 4);
+	    //gnssSynFlg |= (0x1 << 3);
 	    gCmdTypeIndex = 6;
     }
     else if(0 == strncmp("#BESTVELA", (char const *)pData, 9))
     {
+    	//gnssSynFlg |= (0x1 << 4);
     	gCmdTypeIndex = 7;
     }
     else if((0 == strncmp("$GNTRA", (char const *)pData, 6))
@@ -204,7 +218,7 @@ int GNSS_Cmd_Parser(char* pData)
     }
     else if(0 == strncmp("#AGRICA", (char const *)pData, 7))
     {
-	    gnssSynFlg |= (0x1 << 3);
+	    gnssSynFlg |= (0x1 << 0);
 	    gCmdTypeIndex = 9;
     }
 	
@@ -255,6 +269,21 @@ void GNSS_Buff_Parser(char* pData, uint16_t nCmdIndex)
             break;
     }
 }
+
+void gnss_timeWrToArm2(void)
+{
+	hGPSTimeSyn.year = hGPSRmcData.year;
+	hGPSTimeSyn.month = hGPSRmcData.month;
+	hGPSTimeSyn.date = hGPSRmcData.day;
+	hGPSTimeSyn.hour = hGPSRmcData.hour;
+	hGPSTimeSyn.minute = hGPSRmcData.minute;
+	hGPSTimeSyn.second = hGPSRmcData.second;
+
+	DRam_Write(100, (uint16_t*)&hGPSTimeSyn.year, 3);
+	
+    syn_arm2();	//syn call
+}
+
 
 //推荐定位
 int gnss_RMC_Buff_Parser(char* pData)
@@ -1040,9 +1069,9 @@ int gnss_BESTVEL_Buff_Parser(char * pData)
             }
 
             if(i != 18)
-                hGPSBestVelData.posType = (GNSS_POS_TypeDef)pos_status[i].index;
+                hGPSBestVelData.velType = (GNSS_POS_TypeDef)pos_status[i].index;
             else
-                hGPSBestVelData.posType = pos_type_INS_Invalid;//无效状态
+                hGPSBestVelData.velType = pos_type_INS_Invalid;//无效状态
 
             break;
 
@@ -1138,9 +1167,19 @@ int gnss_TRA_Buff_Parser(char * pData)
         return 0;
 }
 
+uint8_t gnss_time_is_valid(void)
+{
+	if(NULL != strstr(hGPSAgricData.header.TimeQuality, "FINE")) 
+	{
+		return INS_EOK;
+	}
+	return INS_ERROR;
+}
+
 //AGRIC 信息
 int gnss_AGRIC_Buff_Parser(char * pData)
 {
+	
     switch(gCmdIndex)
     {
         case 0:					//字段0
@@ -1156,8 +1195,19 @@ int gnss_AGRIC_Buff_Parser(char * pData)
             hGPSAgricData.header.CPUIDle = atoi(pData);
             break;
 
-        case 2:					//字段2,3不解析
+        case 2:					//字段2
+            strncpy(hGPSAgricData.header.TimeRef, pData, 4);
+        	break;
         case 3:
+        	if(NULL != strstr(pData, "FINE"))
+            {
+            	memset(hGPSAgricData.header.TimeQuality, '\0', sizeof(hGPSAgricData.header.TimeQuality));
+                memcpy(hGPSAgricData.header.TimeQuality, pData, sizeof("FINE"));
+            }
+            else if(NULL != strstr(pData, "UNKNOWN"))
+            {
+                memcpy(hGPSAgricData.header.TimeQuality, pData, sizeof("UNKNOWN"));
+            }
             break;
 
         case 4:					//字段4 GPS周数
@@ -1410,16 +1460,41 @@ void gnss_request_saveconfig(void)
 
 }
 
+//INS 设置姿态和标准差
+void gnss_set_posture(double pitch, double roll, double azimuth, 
+							double pitchOffset, double rollOffset, double azimuthOffset)
+{
+	char str[30] = {'\0',};
+    // 发送 SETINITATTITUDE pitch roll azimuth pitchSTD rollSTD azSTD
+    // CONFIG INS ATTITUDE pitch roll azimuth pitchSTD rollSTD azSTD
+    sprintf(str, "%.2f %.2f %.2f %.2f %.2f %.2f",pitch, roll, azimuth, pitchOffset, rollOffset, azimuthOffset);
+	//Uart_SendMsg(UART_TXPORT_COMPLEX_10, 0, strlen(str), (uint8_t *)str);
+}
+
+//IMU 至从天线杆臂参数配置
+void gnss_set_leverArm(double x, double y, double z, 
+							double a, double b, double c)
+{
+	char str[30] = {'\0',};
+    // 发送 SETIMUTOANTOFFSET2 x y z [a] [b] [c]   
+    // CONFIG IMUTOANT OFFSET x y z [a] [b] [c]
+    sprintf(str, "%.2f %.2f %.2f %.2f %.2f %.2f",x, y, z, a, b, c);
+	//Uart_SendMsg(UART_TXPORT_COMPLEX_10, 0, strlen(str), (uint8_t *)str);
+}
+
 //INS 输出位置偏移配置
 void gnss_set_ins_offset(double xoffset, double yoffset, double zoffset)
 {
-    // 发送 SETINSOFFSET xoffset yoffset zoffset
-	
+	char str[20] = {'\0',};
+    // 发送 SETIMUTOANTOFFSET2 x y z [a] [b] [c]
+    // CONFIG INSSOL OFFSET xoffset yoffset zoffset
+    sprintf(str, "%.2f %.2f %.2f",xoffset, yoffset, zoffset);
+	//Uart_SendMsg(UART_TXPORT_COMPLEX_10, 0, strlen(str), (uint8_t *)str);
 }
 
-ARM1_TO_KALAM_MIX_TypeDef*  gnss_get_algorithm_dataPtr(void)
+GPS_AGRIC_TypeDef*  gnss_get_algorithm_dataPtr(void)
 {
-    return &g_algorithm;
+    return &hGPSAgricData;
 }
 
 void gnss_Fetch_Data(void)
@@ -1460,15 +1535,29 @@ void gnss_Fetch_Data(void)
 }
 #else
 {
-    hGPSData.timestamp = hGPSZdaData.timestamp;
-    hGPSData.StarNum = hGPSHeadingData.numSatellitesTracked;
-    hGPSData.ResolveState = hGPSHeadingData.calcState;
-    hGPSData.PositioningState = hGPSRmcData.valid;
-    hGPSData.PositionType = hGPSHeadingData.posType;
+    hGPSData.timestamp = hGPSRmcData.timestamp;
+    //hGPSData.StarNum = hGPSHeadingData.numSatellitesUsed;
+	hGPSData.StarNum = hGPSGgaData.numSatellitesUsed;
+	
+	hGPSData.PositioningState = hGPSRmcData.valid;
+	//位置状态
+    hGPSData.ResolveState[0] = hGPSBestPosData.calcState;
+	hGPSData.PositionType[0] = hGPSBestPosData.posType;
+	//速度状态
+    hGPSData.ResolveState[1] = hGPSBestVelData.calcState;
+	hGPSData.PositionType[1] = hGPSBestVelData.velType;
+	//姿态状态
+    hGPSData.ResolveState[2] = hGPSHeadingData.calcState;
+	hGPSData.PositionType[2] = hGPSHeadingData.posType;
+	
+    hGPSData.hdgstddev = hGPSHeadingData.courseStandardDeviation;
+    hGPSData.ptchstddev = hGPSHeadingData.pitchStandardDeviation;
+    
+    
     hGPSData.LonHemisphere = hGPSRmcData.LonHemisphere;
-    hGPSData.Lon = hGPSRmcData.longitude;
+    hGPSData.Lon = hGPSAgricData.lon;
     hGPSData.LatHemisphere = hGPSRmcData.LatHemisphere;
-    hGPSData.Lat = hGPSRmcData.latitude;
+    hGPSData.Lat = hGPSAgricData.lat;
     hGPSData.Altitude = hGPSAgricData.alt;
     hGPSData.Heading = hGPSAgricData.Heading;
     hGPSData.Pitch = hGPSAgricData.pitch;
@@ -1553,6 +1642,7 @@ uint8_t gnss_parse(uint8_t* pData, uint16_t dataLen)
 
             return INS_ERROR;
         }
+        //gnss_timeWrToArm2();
     }
 
     if(cmdKind != 0)
@@ -1578,34 +1668,13 @@ uint8_t gnss_parse(uint8_t* pData, uint16_t dataLen)
     return ret;
 }
 
-void gnss_fill_rs422(RS422_FRAME_DEF* rs422)
-{
-    if(gCmdTypeIndex == 2)
-    {
-        rs422->data_stream.latitude = hGPSGgaData.latitude;
-        rs422->data_stream.longitude = hGPSGgaData.longitude;
-        rs422->data_stream.altitude = hGPSGgaData.height;
-        rs422->data_stream.status |= BIT(0);
-    }
-    else if(gCmdTypeIndex == 4)
-    {
-        rs422->data_stream.gps_week = hGPSGgaData.gps_week;
-        rs422->data_stream.poll_frame.gps_time = hGPSGgaData.gps_time;
-    }
-    else if(gCmdTypeIndex == 8)
-    {
-        rs422->data_stream.gps_week = hGPSGgaData.gps_week;
-        rs422->data_stream.poll_frame.gps_time = hGPSGgaData.gps_time;
-    }
-}
-
 void gnss_fill_data(uint8_t* pData, uint16_t dataLen)
 {
 	
     if(INS_EOK == gnss_parse(pData, dataLen))
     {
         //gnss_fill_rs422(&rs422_frame);
-        if(0x0f == gnssSynFlg)
+        if(0x01 == gnssSynFlg)
         {
 	        gnssSynFlg = 0;
 	        gnss_Fetch_Data();

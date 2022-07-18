@@ -36,15 +36,15 @@ extern "C" {
 void Align2Att(double* gn, double* wnie, double* aveVm, double* aveWm, double* qnb0)
 {
 	int i,j;
-	double traMat[9] = { 0,0,-1,1,0,0,0,1,0 };// Ë«Ê¸Á¿¶¨×ËµÄ×ª»»¾ØÕó
-	double gnMat[9];// ÒÔgnÎªÖ÷²Î¿¼Ê¸Á¿£¬¹¹½¨µÄÓÒ¾ØÕó
+	double traMat[9] = { 0,0,-1,1,0,0,0,1,0 };// ??????????
+	double gnMat[9];// ?gn?????????????
 	double vmWm[3],vmWmVm[3];
 	double Cnb[9];
 
 	cross3(aveVm, aveWm, vmWm);
 	cross3(vmWm, aveVm, vmWmVm);
 
-	//¹¹½¨ gnMat
+	//?? gnMat
 	for (i = 0; i < 3; i++)
 	{
 		for (j = 0; j < 3; j++)
@@ -61,7 +61,7 @@ void Align2Att(double* gn, double* wnie, double* aveVm, double* aveWm, double* q
 		}
 	}
 	matmul("NN", 3, 3, 3, 1.0, traMat, gnMat, 0.0, Cnb);
-	// ×ËÌ¬¾ØÕó¼ÆËãËÄÔªÊı
+	// ?????????
 	m2qnb(Cnb, qnb0);
 }
 
@@ -79,7 +79,7 @@ void CoarseAlign(double* sumWm, double* sumVm, double* pos, int count, double* q
 	aveVm[0] = -sumVm[0] / count; aveVm[1] = -sumVm[1] / count; aveVm[2] = -sumVm[2] / count;//
 	//aveVm[0] = -sumVm[0] / i; aveVm[1] = -sumVm[1] / i; aveVm[2] = -sumVm[2] / i;//
 
-	for (i = 0; i < 3; i++)gn[i] = wnie[i]= 0.0;//³õÊ¼»¯Îª0
+	for (i = 0; i < 3; i++)gn[i] = wnie[i]= 0.0;//????0
 	gn[2] = -(G0 * (1 + 5.27094e-3 * sl * sl + 2.32718e-5 * sl * sl * sl * sl) - 3.086e-6 * pos[2]);
 	wnie[1] = wie * cl; wnie[2] = wie * sl;
 
@@ -102,7 +102,7 @@ void InitEarth(EARTH* eth)
 	}
 }
 
-void UpdateEarth(EARTH* eth, double* vn, double* pos)  //¸üĞÂ´óµØÊı¾İ
+void UpdateEarth(EARTH* eth, double* vn, double* pos)  //??????
 {
 	double sq, sq2;
 	double temp[3];
@@ -120,7 +120,7 @@ void UpdateEarth(EARTH* eth, double* vn, double* pos)  //¸üĞÂ´óµØÊı¾İ
 	cross3(eth->wnien, vn, temp);
 	matrixSum(eth->gn, temp, 3, 1, -1, eth->gcc);
 }
-void Lever(double* qnb, double* Mpv, double* pos,double *GnssArmLength, double* pos_)// ³õÊ¼»¯¸Ë±Û²¹³¥£¬½«ÌìÏßÏàÎ»ÖĞĞÄµÄËÙ¶ÈºÍÎ»ÖÃ¹éËãÖÁÔØÌå×ø±êÏµ
+void Lever(double* qnb, double* Mpv, double* pos,double *GnssArmLength, double* pos_)// ?????????????????????????????
 {
 	double Cnb[NN * NN],MpvCnb[NN * NN];
 	double dpos[NN];
@@ -155,43 +155,43 @@ void InitHk(KALMAN *kf)
 }
 
 /*******************************************************************************/
-//1step ´Ö¶Ô×¼
+//1step ???
 unsigned int StartCoarseAlign(I_NAV_INS * navins,  I_NAV_GNSS_RESULT *gnss)
 {
 	double NavEuler[3];
 	double GnssPosition[3];
 	inav_log(INAVMD(LOG_DEBUG),"StartCoarseAlign");
-	//¶ÁÈ¡imuÖĞµÄ×ËÌ¬
+	//??imu????
 	NavEuler[0] =  navins->imu.pitch*DEG2RAD;
 	NavEuler[1] =  navins->imu.roll*DEG2RAD;
 	NavEuler[2] =  navins->imu.heading*DEG2RAD;
-	//¶ÁÈ¡¶¨Î»Î»ÖÃ
+	//??????
 	GnssPosition[0]=	gnss->latitude*DEG2RAD;
 	GnssPosition[1] = 	gnss->longitude * DEG2RAD;
-	GnssPosition[2] = 	gnss->altitude ;//¸ß³Ìµ¥Î»m
+	GnssPosition[2] = 	gnss->altitude ;//????m
 
 #if 0
-	//Çó´Ö¶Ô×¼Ê±ºòµÄËÄÔªËØ
+	//??????????
        CoarseAlign(navins->imu.gyro, navins->imu.accm, GnssPosition, 1, navins->ins.qnb);
-	//ËÄÔªËØ×ª×ËÌ¬
+	//??????
 	qnb2att(navins->ins.qnb, navins->ins.att);
 #endif
 	
 	navins->ins.att[0] = navins->imu.pitch*DEG2RAD;
 	navins->ins.att[1] = navins->imu.roll*DEG2RAD;
 	navins->ins.att[2] = navins->imu.heading*DEG2RAD;
-	//RTK¹Ì¶¨½â£¬º½ÏòÊ¹ÓÃGNSSº½Ïò
+	//RTK????????GNSS??
 	if(gnss->gnssstatus == NAV_GNSS_STATUS_RTK_FIX )
 	{
-		navins->ins.att[2] = gnss->heading;
+		navins->ins.att[2] = gnss->heading * DEG2RAD;
 	}	
 	att2qnb(NavEuler,navins->ins.qnb);	
 	inav_log(INAVMD(LOG_DEBUG),"StartCoarseAlign:att=[%.7f,%.7f,%.7f]",navins->ins.att[0]*RAD2DEG,navins->ins.att[1]*RAD2DEG,navins->ins.att[2]);
 	return 0;
 }
 
-//2step ins³õÊ¼»¯
-void InsInit(INSRESULT *ins, double ts, double* qnb, I_NAV_GNSS_RESULT *pNAV_GNSS_RESULT,double *GnssArmLength,I_NAV_INS * navins) //¹ßµ¼³õÊ¼»¯
+//2step ins???
+void InsInit(INSRESULT *ins, double ts, double* qnb, I_NAV_GNSS_RESULT *pNAV_GNSS_RESULT,double *GnssArmLength,I_NAV_INS * navins) //?????
 {
 	int i,j;
 	inav_log(INAVMD(LOG_DEBUG),"InsInit");
@@ -202,7 +202,7 @@ void InsInit(INSRESULT *ins, double ts, double* qnb, I_NAV_GNSS_RESULT *pNAV_GNS
 	ins->vn[2] 	=	pNAV_GNSS_RESULT->vu;
 	ins->pos[0]	=	pNAV_GNSS_RESULT->latitude*DEG2RAD;
 	ins->pos[1]	=	pNAV_GNSS_RESULT->longitude * DEG2RAD;
-	ins->pos[2]	=	pNAV_GNSS_RESULT->altitude ;//¸ß³Ìµ¥Î»m
+	ins->pos[2]	=	pNAV_GNSS_RESULT->altitude ;//????m
 	for (i = 0; i < 4; i++) {
 		ins->qnb[i] = qnb[i];
 		if (i < 3) {
@@ -219,13 +219,13 @@ void InsInit(INSRESULT *ins, double ts, double* qnb, I_NAV_GNSS_RESULT *pNAV_GNS
 	UpdateEarth(&navins->earth, ins->vn, ins->pos);
 	ins->Mpv[1] = 1 / navins->earth.clRNh; ins->Mpv[3] = 1 / navins->earth.RMh; ins->Mpv[8] = 1.0;
 
-	// ³õÊ¼»¯¸Ë±Û²¹³¥£¬½«ÌìÏßÏàÎ»ÖĞĞÄµÄËÙ¶ÈºÍÎ»ÖÃ¹éËãÖÁÔØÌå×ø±êÏµ
+	// ?????????????????????????????
 	inav_log(INAVMD(LOG_DEBUG),"before Lever ,ins->pos=[%.7f, %.7f,%.7f]",ins->pos[0],ins->pos[1],ins->pos[2]);
-	Lever(qnb, ins->Mpv,  ins->pos,g_Compensate_Params.gnssArmLength, ins->pos);
+	Lever(qnb, ins->Mpv,  ins->pos, GnssArmLength, ins->pos);
 	inav_log(INAVMD(LOG_DEBUG),"after Lever ,ins->pos=[%.7f, %.7f,%.7f]",ins->pos[0],ins->pos[1],ins->pos[2]);
 
 #if 0	
-	//???³õÊ¼»¯½ÇËÙ¶ÈÆ«²î
+	//???????????
 	ins->eb[0] = INC_EB0;
 	ins->eb[1] = INC_EB1;
 	ins->eb[2] = INC_EB2;
@@ -233,13 +233,13 @@ void InsInit(INSRESULT *ins, double ts, double* qnb, I_NAV_GNSS_RESULT *pNAV_GNS
 }
 
 //3step KfInit
-void KfInit(KALMAN* kf)  //¿¨¶ûÂüÂË²¨³õÊ¼»¯
+void KfInit(KALMAN* kf)  //????????
 {
 	int i = 0;
 	inav_log(INAVMD(LOG_DEBUG),"KfInit");
 	for (i = 0; i < NA; i++)
 	{
-		// ´Ë´¦³õÊ¼»¯»¹ĞèÒªÓÅ»¯
+		// ??????????
 		if (i >= 0 && i < 2)
 			InitPQ(kf, 0.0, DATT_VAR, ANGNRANDOMWALK2, i); //att   ANGNRANDOMWALK2*nts*nts
 		else if (i == 2)
@@ -252,7 +252,7 @@ void KfInit(KALMAN* kf)  //¿¨¶ûÂüÂË²¨³õÊ¼»¯
 			//InitPQ(kf, 0.0, DPOS_VAR, 0.0, i); //pos
 			InitPQ(kf, 0.0, DPOS_VAR, INS_POS_VAR, i); 
 		else if (i == 8)
-			//InitPQ(kf, 0.0, 1 * 1, 0.0, i);//×¢Òâ´Ë´ÎÓÃÁË1 * 1,ÓÉÓÚ¸ß³ÌÊ¹ÓÃÃ×µ¥Î»£¬²»ĞèÒª³ıÒÔRe
+			//InitPQ(kf, 0.0, 1 * 1, 0.0, i);//??????1 * 1,???????????????Re
 			InitPQ(kf, 0.0, 1 * 1, INS_HEAD_VAR, i);
 		else if (i >= 9 && i < 12)
 			InitPQ(kf, 0.0, GYROBIAS2, 0.0, i); //eb
@@ -279,7 +279,7 @@ void KfInit(KALMAN* kf)  //¿¨¶ûÂüÂË²¨³õÊ¼»¯
 
 		else if(i==5)
 			//kf->RK[i] = 0.1 * 0.1;
-			kf->RK[i] = 0.3 * 0.3;//? ¸ß³ÌÎó²î, RTK£¬PPPÀíÂÛ¸ß³ÌÎó²î´óÔ¼ÊÇ3±¶µÄË®Æ½Îó²î
+			kf->RK[i] = 0.3 * 0.3;//? ????, RTK?PPP?????????3??????
 		else
 			kf->RK[i]=HEAD_VAR;
 	}
@@ -303,7 +303,7 @@ void UpdateKfRHuge(KALMAN* kf)
 		mvel_var[i] 	=	VEL_VAR_F*1.0e8;
 		mposvar[i]	=	SPP_POS_VAR*1.0e8;
 	}
-	mposvar[2]	=	5.0*5.0*1.0e8;//rtk ¸ß³ÌÎó²î0.1m
+	mposvar[2]	=	5.0*5.0*1.0e8;//rtk ????0.1m
 	
 	for (i = 0; i < NB; i++)
 	{
@@ -333,19 +333,21 @@ void UpdateKfR(KALMAN* kf ,I_NAV_GNSS_RESULT *pNavGnss)
 	{
 		for(i=0;i<3;i++)
 		{
-			mvel_var[i] 	=	VEL_VAR_F ;
-			mposvar[i]	=	RTK_POS_VAR;
+			mvel_var[i] 	=	VEL_VAR_F*100; //------ayh
+			//mvel_var[i] 	=	VEL_VAR*100;
+			mposvar[i]	=	RTK_POS_VAR*100;
 		}
-		mposvar[2]	=	0.1*0.1;//rtk ¸ß³ÌÎó²î0.1m
+		mposvar[2]	=	0.1*0.1*100;//rtk ¸ß³ÌÎó²î0.1m
 	}
 	else 
 	{
 		for(i=0;i<3;i++)
 		{
-			mvel_var[i] 	=	VEL_VAR_F;
-			mposvar[i]	=	SPP_POS_VAR;
+			mvel_var[i] 	=	VEL_VAR_F*100;
+			//mvel_var[i] 	=	VEL_VAR*100;
+			mposvar[i]	=	SPP_POS_VAR*100;
 		}
-		mposvar[2]	=	5.0*5.0;//·Çrtk¸ß³ÌÎó²î5m
+		mposvar[2]	=	5.0*5.0*100;//·Çrtk¸ß³ÌÎó²î5m
 	}
 
 	for (i = 0; i < NB; i++)
@@ -359,7 +361,7 @@ void UpdateKfR(KALMAN* kf ,I_NAV_GNSS_RESULT *pNavGnss)
 			kf->RK[i] = mposvar[i-3];
 	      	}
 		//else
-		//	kf->RK[i]=HEAD_VAR;//ÔİÊ±Î´ÓÃ
+		//	kf->RK[i]=HEAD_VAR;//????
 	}
 
 	inav_log(INAVMD(LOG_DEBUG),"mposvar[%.7E,%.7E,%.7E]",mposvar[0],mposvar[1],mposvar[2]);
@@ -396,7 +398,7 @@ void Cnscl(IMUDATA* imu, double* phim, double* dvbm)
 	matrixSum(temp1, temp2, 3, 1, 1, dvbm);
 }
 
-void InsUpdate(IMUDATA *imu,INSRESULT *ins,I_NAV_INS * navins) //¹ßµ¼¸üĞÂ
+void InsUpdate(IMUDATA *imu,INSRESULT *ins,I_NAV_INS * navins) //????
 {
 	int i;
 	double nts=ins->nts;
@@ -410,15 +412,19 @@ void InsUpdate(IMUDATA *imu,INSRESULT *ins,I_NAV_INS * navins) //¹ßµ¼¸üĞÂ
       //PrintOutInsMsg();
 //------------------------------------------------------------------------------------
 	//Ê¹ÓÃ¶ş×ÓÑùËã·¨£¬Ã¿´ÎÊäÈëÁ½´ÎµÄ¹ßĞÔÆ÷¼ş²ÉÑùÊı¾İºÍÇ°Á½Ê±¿ÌµÄavpÊı¾İ???
-	Cnscl(imu, phim_, dvbm_);//Ë«×ÓÑùÌØÊâ´¦Àí
+	//Cnscl(imu, phim_, dvbm_);//Ë«×ÓÑùÌØÊâ´¦Àí
+
+     //--------------hxl--------------
+	matmul("NN", 3, 1, 1, PI/180.0, imu->gyro, &nts, 0.0, phim_);
+	matmul("NN", 3, 1, 1, G0, imu->accm, &nts, 0.0, dvbm_);	  
 	matrixSum(phim_, ins->eb, 3, 1, -nts, phim);// kg*phim-eb*nts   ÍÓÂİ½ÇËÙ¶È
 	matrixSum(dvbm_, ins->db, 3, 1, -nts, dvbm);// ka*dvbm-db*nts ¼ÓËÙ¶È
 //------------------------------------------------------------------------------------
-	matrixSum(ins->vn, ins->an, 3, 1, nts / 2, vn01);//¼ÆËãntsÕâ¶ÎÊ±¼äÆ½¾ùËÙ¶È
+	matrixSum(ins->vn, ins->an, 3, 1, nts / 2, vn01);//??nts????????
 	matmul("NN", 3, 1, 3, 1.0, ins->Mpv, vn01, 0.0, dpos);
-	matrixSum(ins->pos, dpos, 3, 1, nts / 2, pos01);//¼ÆËãntsÕâ¶ÎÊ±¼äÎ»ÖÃ
+	matrixSum(ins->pos, dpos, 3, 1, nts / 2, pos01);//??nts??????
 
-	UpdateEarth(&navins->earth, vn01, pos01);//¸üĞÂ´óµØÊı¾İ
+	UpdateEarth(&navins->earth, vn01, pos01);//??????
 	for (i = 0; i < 3; i++) {wib[i] = phim[i] / nts;fb[i] = dvbm[i] / nts;}
 	q2mat(ins->qnb, Cnb);
 
@@ -436,7 +442,7 @@ void InsUpdate(IMUDATA *imu,INSRESULT *ins,I_NAV_INS * navins) //¹ßµ¼¸üĞÂ
 	matrixSum(ins->vn, vn_, 3, 1, 1, vn1);
 //---------------pos update---------------------------------------------------------------
 	ins->Mpv[3] = 1 / navins->earth.RMh; ins->Mpv[1] = 1 / navins->earth.clRNh;
-	dpos_[0] = ((ins->vn[1] + vn1[1]) / navins->earth.RMh) * (nts / 2);//Ê¹ÓÃÆ½¾ùËÙ¶È¼ÆËãÎ»ÖÃ±ä»¯
+	dpos_[0] = ((ins->vn[1] + vn1[1]) / navins->earth.RMh) * (nts / 2);//????????????
 	dpos_[1] = ((ins->vn[0] + vn1[0]) / navins->earth.clRNh) * (nts / 2);
 	dpos_[2] = (ins->vn[2] + vn1[2]) *( nts / 2);
 	matrixSum(ins->pos, dpos_, 3, 1, 1, ins->pos);
@@ -449,7 +455,7 @@ void InsUpdate(IMUDATA *imu,INSRESULT *ins,I_NAV_INS * navins) //¹ßµ¼¸üĞÂ
 	//PrintOutInsMsg();
 }
 
-unsigned char KfFk(INSRESULT * ins, double* Fk,I_NAV_INS * navins)//¿¨¶ûÂüÂË²¨¡¢¹¹½¨FK¾ØÕó,¼ÆËãÒ»´Î×´Ì¬¸üĞÂ¾ØÕó
+unsigned char KfFk(INSRESULT * ins, double* Fk,I_NAV_INS * navins)//????????FK??,??????????
 {
 	int i,j;
 	double* Ft = zeros(NA, NA);
@@ -507,7 +513,7 @@ unsigned char KfFk(INSRESULT * ins, double* Fk,I_NAV_INS * navins)//¿¨¶ûÂüÂË²¨¡¢
 	Mvp[8] = Mvp[8] + 3.086e-6;
 
 	Mpp[1] = vE_clRNh * tl; Mpp[6] = (-vN_RMh2); Mpp[7] = (-vE_RNh2) * secl;
-	// ¹¹½¨FK¾ØÕó
+	// ??FK??
 	q2mat(ins->qnb, Cnb);
 
 	PrintOutMatrixMsg(3,3,Map, "KfFk-Map");
@@ -595,7 +601,7 @@ unsigned char KfFk(INSRESULT * ins, double* Fk,I_NAV_INS * navins)//¿¨¶ûÂüÂË²¨¡¢
 	return INS_FUN_RETURN_SUCESS;
 }
 
-unsigned char  KfTimeUpdate(KALMAN* kf, double* Fk, double nts,int m) //kfÊ±¼ä¸üĞÂ
+unsigned char  KfTimeUpdate(KALMAN* kf, double* Fk, double nts,int m) //kf????
 {
 	double* XK = zeros(NA, 1);
 	double* FP = zeros(NA, NA);
@@ -823,14 +829,14 @@ void LeverarmTimeCorr(INSRESULT* ins,double *gpsVn,double *gpsPos,double heading
 	matrixSum(posL_, MpvVn, 3, 1, -dt, posL);
 
 #if 1
-	if (MOTION_STATUS_HEADING==g_STATIC_DETECTION.state)//µ±Ç°Ã»ÓĞ¸ÄÄ£Ê½
+	if (MOTION_STATUS_HEADING==g_STATIC_DETECTION.state)//???????
 	{
 		for (i = 0, k = 0; i < 6; i++)
 		{
 			if (i < 3)Zk[k++] = vnL[i] - gpsVn[i];
 			else Zk[k++] = posL[i - 3] - gpsPos[i - 3];
 		}
-		//-------º½ÏòÔ¼Êø²Ğ²îZk[6]--H¾ØÕó¹¹½¨--------------------------------------------------------------
+		//-------??????Zk[6]--H????--------------------------------------------------------------
 		Zk[k]=ins->att[2]-ins->att_pre[2];
 		//-----------------------------------------------------------------------------------
 		KfHk(CW, MpvCnb,Hk_k_1,n,m,Hk);
@@ -878,7 +884,7 @@ double  RadAptive(double* P, double* H, double* Zk, double* Rk, double* Rmin, do
 		free(Fk); free(Q);
 		return 0;
 	}
-	//Á¿²â×ÔÊÊÓ¦ÂË²¨
+	//???????
 	matmul("NT", n, m, n, 1.0, P, H, 0.0, Fk);//PH'
 	matmul("NN", m, m, n, 1.0, H, Fk, 0.0, Q);//HPH'
 
@@ -937,7 +943,7 @@ void MatrixRk(double* R,int m, double* Rk)
 			}
 		}
 	}
-	//PrintOutMatrixMsg(m,m,Rk, "R");//´òÓ¡R¾ØÕó
+	//PrintOutMatrixMsg(m,m,Rk, "R");//??R??
 }
 int KfMeasUpdate(double* x, double* P, double* H, double* v,double *R, int n, int m, double* X_, double* P_)
 {
@@ -993,7 +999,7 @@ int KfMeasUpdate(double* x, double* P, double* H, double* v,double *R, int n, in
 	return INS_FUN_RETURN_SUCESS;
 }
 
-unsigned char GnssInsFusion(INSRESULT* ins, I_NAV_GNSS_RESULT* gnss,KALMAN* kf ,double *lever ,double dt) //GnssInsÈÚºÏ¡¢¸Ë±Û¡¢Ê±¼äÍ¬²½²¹³¥¡¢Á¿²â¸üĞÂ
+unsigned char GnssInsFusion(INSRESULT* ins, I_NAV_GNSS_RESULT* gnss,KALMAN* kf ,double *lever ,double dt) //GnssIns?????????????????
 {
 	int n, m;
 	double *Zk, *Hk, *Rk;
@@ -1008,7 +1014,7 @@ unsigned char GnssInsFusion(INSRESULT* ins, I_NAV_GNSS_RESULT* gnss,KALMAN* kf ,
 	GnssVel[2]			= gnss->vu;
 	
 #if 1
-	if (MOTION_STATUS_HEADING==g_STATIC_DETECTION.state)//µ±Ç°Ã»ÓĞ¸ÄÄ£Ê½
+	if (MOTION_STATUS_HEADING==g_STATIC_DETECTION.state)//???????
 	{
 		n = NA; m = NB+1;
 	}
@@ -1026,7 +1032,7 @@ unsigned char GnssInsFusion(INSRESULT* ins, I_NAV_GNSS_RESULT* gnss,KALMAN* kf ,
 		return INS_FUN_RETURN_FAIL;
 	}
 
-	// ¸Ë±Û¡¢Ê±¼äÍ¬²½²¹³¥£»·µ»ØZk and Hk
+	// ????????????Zk and Hk
 	LeverarmTimeCorr(ins, GnssVel,GnssPosition,gnss->heading,lever, dt, n,m,Zk,Hk);
 	inav_log(INAVMD(LOG_DEBUG),"after LeverarmTimeCorr");
 	//PrintOutMatrixMsg(m,1,Zk, "Zk");
@@ -1040,7 +1046,7 @@ unsigned char GnssInsFusion(INSRESULT* ins, I_NAV_GNSS_RESULT* gnss,KALMAN* kf ,
 	//PrintOutMatrixMsg(m,1,Zk, "Zk");
 
 #if 0
-	//Ò»µ©Ê§Ëø£¬²»ĞèÒª×ÔÊÊÓ¦µ÷Õû£¬R¾ØÕóÎª¼«´óÖµ
+	//??????????????R??????
 	if(NAV_GNSS_STATUS_LOST != g_NAV_GNSS_RESULT.gnssstatus)
 	{
 		kf->beta = RadAptive(kf->Pxk, Hk, Zk, kf->RK, kf->Rmin, kf->Rmax, n, NB, kf->beta, kf->b, kf->RK);
@@ -1048,10 +1054,10 @@ unsigned char GnssInsFusion(INSRESULT* ins, I_NAV_GNSS_RESULT* gnss,KALMAN* kf ,
 	
 #endif
 
-	// ¹¹½¨R¾ØÕó
+	// ??R??
 	MatrixRk(kf->RK,m, Rk);
 	PrintOutMatrixMsg(n,m,kf->RK, "GnssInsFusion-Rk");
-	// Á¿²â¸üĞÂ
+	// ????
 	if(INS_FUN_RETURN_SUCESS!=KfMeasUpdate(kf->Xk,kf->Pxk,Hk,Zk,Rk,n,m,kf->Xk,kf->Pxk))
 	{
 		return INS_FUN_RETURN_FAIL;
@@ -1064,7 +1070,7 @@ unsigned char GnssInsFusion(INSRESULT* ins, I_NAV_GNSS_RESULT* gnss,KALMAN* kf ,
 	return INS_FUN_RETURN_SUCESS;
 }
 
-void KfFeedback(KALMAN* kf, INSRESULT* ins)  //¿¨¶ûÂüÂË²¨·´À¡
+void KfFeedback(KALMAN* kf, INSRESULT* ins)  //???????
 {
 	double phi[NN];
 	int i;
@@ -1094,7 +1100,7 @@ void KfFeedback(KALMAN* kf, INSRESULT* ins)  //¿¨¶ûÂüÂË²¨·´À¡
 #endif
 	qdelphi(ins->qnb, phi, ins->qnb);
 
-	//¸üĞÂ×ËÌ¬£¬ËÄÔªËØ×ª×ËÌ¬
+	//???????????
 	 qnb2att( ins->qnb, ins->att); 
 	for (i = 0; i < NN; i++)
 	{
@@ -1105,7 +1111,7 @@ void KfFeedback(KALMAN* kf, INSRESULT* ins)  //¿¨¶ûÂüÂË²¨·´À¡
 	
 }
 
-double averageBias(double cnt,double meas,double average)//Æ½¾ùÆ«ÒÆ
+double averageBias(double cnt,double meas,double average)//????
 {
 	return (1.0/cnt)*meas+((cnt-1.0)/cnt)*average;
 }
@@ -1120,7 +1126,7 @@ double average(double* sample,int size)
 	}
 	return temp / size;
 }
-double compute_var(double* sample,int size)  //¼ÆÊı±äÁ¿
+double compute_var(double* sample,int size)  //????
 {
 	int i;
 	double ave;
@@ -1140,13 +1146,13 @@ double compute_var(double* sample,int size)  //¼ÆÊı±äÁ¿
 	free(temp);
 	return var;
 }
-void static_detection(IMUDATA *imu,double *vn,double *acc, STATIC_DETECTION *pStaticDetect) //¾²Ì¬¼ì²â
+void static_detection(IMUDATA *imu,double *vn,double *acc, STATIC_DETECTION *pStaticDetect) //????
 {
 	int i=0,j=1;
 	double var[NN];
 	if (pStaticDetect->index  == SAMPLE_SIZE)
 	{
-		//Êı¾İÒÆÎ»
+		//????
 		for (i = 0; i < SAMPLE_SIZE&&j<SAMPLE_SIZE; i++)
 		{
 			pStaticDetect->gyro[0][i]	=  pStaticDetect->gyro[0][j];
@@ -1158,12 +1164,12 @@ void static_detection(IMUDATA *imu,double *vn,double *acc, STATIC_DETECTION *pSt
 		pStaticDetect->gyro[1] [SAMPLE_SIZE-1]	= imu->gyro[1];
 		pStaticDetect->gyro[2] [SAMPLE_SIZE-1]	= imu->gyro[2];
 
-		//·½²î¼ÆËã
+		//????
 		var[0] = compute_var(pStaticDetect->gyro[0] ,SAMPLE_SIZE);
 		var[1] = compute_var(pStaticDetect->gyro[1] ,SAMPLE_SIZE);
 		var[2] = compute_var(pStaticDetect->gyro[2] ,SAMPLE_SIZE);
 
-		//ÔË¶¯×´Ì¬Ì½²â
+		//??????
 		if ((norm(var, NN)) < VAR_THRESHSHOLD) //(norm(vn,NN))<VN_3D_THRESHSHOLD
 		{
 			pStaticDetect->state =  MOTION_STATUS_STATIC;
@@ -1218,7 +1224,7 @@ void InitialNavIncParm()
 	g_NAV_INS.imu.accm_pre[0] 	=	g_NAV_INS.imu.accm[0];
 	g_NAV_INS.imu.accm_pre[1] 	=	g_NAV_INS.imu.accm[1];
 	g_NAV_INS.imu.accm_pre[2] 	=	g_NAV_INS.imu.accm[2];
-	g_NAV_INS.insStatus 			=	NAV_INS_STATUS_WAIT;//ÔİÊ±´ÓNAV_INS_STATUS_WAIT¿ªÊ¼
+	g_NAV_INS.insStatus 			=	NAV_INS_STATUS_WAIT;//???NAV_INS_STATUS_WAIT??
 }
 
 void InitialStaticDetectParm(void)
@@ -1269,25 +1275,25 @@ COMPENSATE_PARAMS * GetCompensateParmsPointer()
 }
 
 
-//¹ßµ¼ĞÅÏ¢´òÓ¡
+//??????
 void PrintOutInsMsg()
 {
 	inav_log(INAVMD(LOG_DEBUG),"***********************print out ins msg*******************************");
 	inav_log(INAVMD(LOG_DEBUG),"imu.second=%.3f,dt=%.4f",g_NAV_INS.imu.second,g_NAV_INS.dt);
-	//ÌîĞ´ÎÀµ¼×ËÌ¬¡¢Î»ÖÃ¡¢ËÙ¶È´òÓ¡
+	//??????????????
 	inav_log(INAVMD(LOG_DEBUG),"ins-att=[%.7f,%.7f,%.7f]",g_NAV_INS.ins.att[0]*RAD2DEG,g_NAV_INS.ins.att[1]*RAD2DEG,g_NAV_INS.ins.att[2]);
 	inav_log(INAVMD(LOG_DEBUG),"ins-pos=[%.7f,%.7f,%.7f]",g_NAV_INS.ins.pos[0]*RAD2DEG,g_NAV_INS.ins.pos[1]*RAD2DEG,g_NAV_INS.ins.pos[2]);
 	inav_log(INAVMD(LOG_DEBUG),"ins-posstd=[%.7f,%.7f,%.7f]",g_NAV_INS.ins.posstd[0]*RAD2DEG,g_NAV_INS.ins.posstd[1]*RAD2DEG,g_NAV_INS.ins.posstd[2]);
 	inav_log(INAVMD(LOG_DEBUG),"ins-vel=[%.7f,%.7f,%.7f]",g_NAV_INS.ins.vn[0],g_NAV_INS.ins.vn[1],g_NAV_INS.ins.vn[2]);
 	inav_log(INAVMD(LOG_DEBUG),"ins-velstd=[%.7f,%.7f,%.7f]",g_NAV_INS.ins.vnstd[0],g_NAV_INS.ins.vnstd[1],g_NAV_INS.ins.vnstd[2]);
 }
-//ÎÀµ¼ĞÅÏ¢´òÓ¡
+//??????
 void PrintOutGNSSMsg()
 {
 	inav_log(INAVMD(LOG_DEBUG),"***********************print out gnss msg*******************************");
 	inav_log(INAVMD(LOG_DEBUG),"gnssstatus=%d",g_NAV_GNSS_RESULT.gnssstatus);
 	inav_log(INAVMD(LOG_DEBUG),"gpssecond=%.3f",g_NAV_GNSS_RESULT.gpssecond);
-	//ÌîĞ´¹ßµ¼º½Ïò½Ç¡¢Î»ÖÃ¡¢ËÙ¶È¡¢¶¨Î»×´Ì¬´òÓ¡
+	//????????????????????
 	inav_log(INAVMD(LOG_DEBUG),"gnss-angle=[%.7f,%.7f,%.7f]",g_NAV_GNSS_RESULT.heading,g_NAV_GNSS_RESULT.pitch,g_NAV_GNSS_RESULT.roll);
 	inav_log(INAVMD(LOG_DEBUG),"gnss-pos=[%.7f,%.7f,%.7f]",g_NAV_GNSS_RESULT.latitude,g_NAV_GNSS_RESULT.longitude,g_NAV_GNSS_RESULT.altitude);
 	inav_log(INAVMD(LOG_DEBUG),"gnss-vel=[%.7f,%.7f,%.7f]",g_NAV_GNSS_RESULT.ve,g_NAV_GNSS_RESULT.vn,g_NAV_GNSS_RESULT.vu);
@@ -1297,7 +1303,7 @@ void PrintOutGNSSMsg()
 		inav_log(INAVMD(LOG_DEBUG),"gnss-velstd=[%.7f,%.7f,%.7f]",g_NAV_GNSS_RESULT.vestd,g_NAV_GNSS_RESULT.vnstd,g_NAV_GNSS_RESULT.vustd);
 	}
 }
-//¾ØÕóĞÅÏ¢´òÓ¡
+//??????
 void PrintOutMatrixMsg(int n,int m ,double *A, char * name)
 {
 #if 1
@@ -1328,53 +1334,53 @@ void InterfaceKalman()
 	inav_log(INAVMD(LOG_DEBUG),"g_NAV_INS.insStatus = %d",g_NAV_INS.insStatus);
 	switch(g_NAV_INS.insStatus)
 	{
-		case NAV_INS_STATUS_IDLE:   //0¿ÕÏĞ
+		case NAV_INS_STATUS_IDLE:   //0??
 		{
 		      
 		}
 		break;
 
-		case NAV_INS_STATUS_START:  //1¿ªÊ¼µ¼º½
+		case NAV_INS_STATUS_START:  //1????
 		{
 			g_NAV_INS.insStatus=	NAV_INS_STATUS_WAIT;
 		}
 		break;
 
-		case NAV_INS_STATUS_WAIT:  //2µÈ´ıÎÈ¶¨×´Ì¬
+		case NAV_INS_STATUS_WAIT:  //2??????
 		{
-			if(1 == g_NAV_GNSS_RESULT.gnssstartflag)//gpsÒÑ¾­Æô¶¯¿ÉÒÔ½øĞĞÈÚºÏ¹ßµ¼
+			if(1 == g_NAV_GNSS_RESULT.gnssstartflag)//gps????????????
 			{
 				g_NAV_INS.insStatus=	NAV_INS_STATUS_ROUTH_ALIGN;
 			}
 		}
 		break;
 
-		case NAV_INS_STATUS_ROUTH_ALIGN:  //2µÈ´ıÎÈ¶¨×´Ì¬
+		case NAV_INS_STATUS_ROUTH_ALIGN:  //2??????
 		{
-			//´Ö¶Ô×¼
+			//???
 			StartCoarseAlign(&g_NAV_INS,&g_NAV_GNSS_RESULT);
-			//¸ù¾İgpsĞÅÏ¢¼°µ±Ç°¹ßµ¼ĞÅÏ¢³õÊ¼»¯
+			//??gps????????????
 			InsInit(&g_NAV_INS.ins, TS, g_NAV_INS.ins.qnb, &g_NAV_GNSS_RESULT,g_Compensate_Params.gnssArmLength,&g_NAV_INS);
-			//³õÊ¼»¯EKFÖĞP;Q¾ØÕó
+			//???EKF?P;Q??
 			KfInit(&g_NAV_INS.kf);
 			g_NAV_INS.insStatus=	NAV_INS_STATUS_KEEP;
 		}
 		break;
 
-		case NAV_INS_STATUS_KEEP:  //½øÈëµ¼º½×´Ì¬
+		case NAV_INS_STATUS_KEEP:  //??????
 		{
-			//¹ßµ¼Êı¾İ¸üĞÂ
+			//??????
 			InsUpdate(&g_NAV_INS.imu,&g_NAV_INS.ins,&g_NAV_INS);
-			//»ñÈ¡Ê±¼ä¸üĞÂµÄ×ª»»¾ØÕó
+			//???????????
 			if(INS_FUN_RETURN_SUCESS == KfFk(&g_NAV_INS.ins,g_NAV_INS.Fk,&g_NAV_INS))
 			{
 
-#if 1//¶¯Ì¬¼ì²é,ÊÇ·ñĞèÒª´ı¿¼ÂÇ
+#if 1//????,???????
 				static_detection(&g_NAV_INS.imu,g_NAV_INS.ins.vn,g_NAV_INS.ins.an, &g_STATIC_DETECTION);
 				inav_log(INAVMD(LOG_DEBUG),"g_STATIC_DETECTION.state=%d",g_STATIC_DETECTION.state);
-				if(MOTION_STATUS_MOVING != g_STATIC_DETECTION.state)//µ±Ç°·Ç¶¯Ì¬
+				if(MOTION_STATUS_MOVING != g_STATIC_DETECTION.state)//?????
 				{
-					//GNSS RTK¹Ì¶¨½â
+					//GNSS RTK???
 					if(NAV_GNSS_STATUS_RTK_FIX == g_NAV_GNSS_RESULT.gnssstatus)
 					{
 						g_NAV_INS.ins.att[2] = g_NAV_GNSS_RESULT.heading*DEG2RAD;
@@ -1383,18 +1389,18 @@ void InterfaceKalman()
 					}
 				}
 #endif
-				//Ê±¼äÒ»²½¸üĞÂ
+				//??????
 				if(INS_FUN_RETURN_SUCESS ==KfTimeUpdate(&g_NAV_INS.kf, g_NAV_INS.Fk,TS, 1))
 				{
-					//¼ÆËã¹ßµ¼ÓëÎÀµ¼Ê±¼ä²îµ¥Î»s
+					//????????????s
 					g_NAV_INS.dt = difftimeInc2gnss((double)g_NAV_INS.imu.second,(double)g_NAV_GNSS_RESULT.gpssecond);
 					inav_log(INAVMD(LOG_DEBUG),"g_NAV_INS.dt=%.7f",g_NAV_INS.dt);
 					if(g_NAV_GNSS_RESULT.gnssstatus >= NAV_GNSS_STATUS_SPP)
 					{
-						//dengwei µ¥µã¶¨Î»¡¢rtk¹Ì¶¨½âµÄÁ¿²âÎó²î²»Í¬£¬ĞèÒª¸üĞÂR ¾ØÕó,
+						//dengwei ?????rtk???????????????R ??,
 						UpdateKfR(&g_NAV_INS.kf,&g_NAV_GNSS_RESULT);
 					}
-					else//Ê§ËøÇé¿öÏÂÉèÖÃR¾ØÕóÎó²îÎŞÏŞ´ó
+					else//???????R???????
 					{
 						UpdateKfRHuge(&g_NAV_INS.kf);
 					}
@@ -1405,14 +1411,14 @@ void InterfaceKalman()
 			}
 
 			KfFeedback(&g_NAV_INS.kf,&g_NAV_INS.ins);
-			//¹ßµ¼ĞÅÏ¢´òÓ¡
+			//??????
 			PrintOutInsMsg();
-			//ÎÀµ¼ĞÅÏ¢´òÓ¡
+			//??????
 			PrintOutGNSSMsg();
 		}
 		break;
 
-		case NAV_INS_STATUS_STOP:  //Í£Ö¹¹ßµ¼
+		case NAV_INS_STATUS_STOP:  //????
 		{
 			StopNavigation();
 		}
@@ -1444,15 +1450,19 @@ unsigned int GetNavGnssData(I_NAV_GNSS_RESULT *p, void *comb)
 	p->baseline = pComb->gnssInfo.baseline;
 	p->nsv = pComb->gnssInfo.StarNum;
 	p->gnssstatus = pComb->gnssInfo.rtkStatus;
-	p->utc = pComb->gnssInfo.timestamp;//?
+	p->utc = pComb->gnssInfo.timestamp;
 	p->supportposvelstd = 1;
 	p->latstd = pComb->gnssInfo.LatStd;
 	p->logstd = pComb->gnssInfo.LonStd;
 	p->hstd = pComb->gnssInfo.AltitudeStd;
+
+	p->vestd = pComb->gnssInfo.hdgstddev;
+	p->vnstd = pComb->gnssInfo.ptchstddev;
+	
 	p->vestd = pComb->gnssInfo.vestd;
 	p->vnstd = pComb->gnssInfo.vnstd;
 	p->vustd = pComb->gnssInfo.vustd;
-	p->gnssstartflag = 1; //è·å–æ•°æ®æˆåŠŸ
+	p->gnssstartflag = 1; //?????????
 	return 0;
 }
 
@@ -1462,15 +1472,15 @@ void TestMain()
 	//double Fk[NA*NA] = {0};
 	//double dt=0.0;
 	InitialNavIncParm();
-	//åˆå§‹åŒ–é™æ€æ£€æŸ¥å‚æ•°
+	//??????????????
 	InitialStaticDetectParm();
 	
 	while(1)
 	{
-		//å¡«å†™ç­‰å¾…gpsä¸­æ–­
+		//??????gps???
 		//if( Semaphore_pend(fpgaSem, BIOS_WAIT_FOREVER)==FALSE )/* wait for FPGA Interrupt */
 		{/* error report */
-//				if( LogFileCreated ) fprintf(fpLogFile,"Error:semTake(FpgaSemID,WAIT_FOREVER)==ERROR\n");  //æ·»åŠ ç›¸å…³æ–‡ä»¶åå†å¯ç”¨
+//				if( LogFileCreated ) fprintf(fpLogFile,"Error:semTake(FpgaSemID,WAIT_FOREVER)==ERROR\n");  //???????????????
 		}
 
 		//GetNavIncData(&g_NAV_INS.imu);
@@ -1479,50 +1489,50 @@ void TestMain()
 		switch(g_NAV_INS.insStatus)
 		{
 			inav_log(INAVMD(LOG_DEBUG),"g_NAV_INS.insStatus = %d",g_NAV_INS.insStatus);
-			case NAV_INS_STATUS_IDLE:   //0ç©ºé—²
+			case NAV_INS_STATUS_IDLE:   //0???
 			{
 			      
 			}
 			break;
 
-			case NAV_INS_STATUS_START:  //1å¼€å§‹å¯¼èˆª
+			case NAV_INS_STATUS_START:  //1???????
 			{
 				g_NAV_INS.insStatus=	NAV_INS_STATUS_WAIT;
 			}
 			break;
 
-			case NAV_INS_STATUS_WAIT:  //2ç­‰å¾…ç¨³å®šçŠ¶æ€
+			case NAV_INS_STATUS_WAIT:  //2??????????
 			{
-				if(1 == g_NAV_GNSS_RESULT.gnssstartflag)//gpså·²ç»å¯åŠ¨å¯ä»¥è¿›è¡Œèåˆæƒ¯å¯¼
+				if(1 == g_NAV_GNSS_RESULT.gnssstartflag)//gps??????????????????
 				{
 					g_NAV_INS.insStatus=	NAV_INS_STATUS_ROUTH_ALIGN;
 				}
 			}
 			break;
 
-			case NAV_INS_STATUS_ROUTH_ALIGN:  //2ç­‰å¾…ç¨³å®šçŠ¶æ€
+			case NAV_INS_STATUS_ROUTH_ALIGN:  //2??????????
 			{
-				//ç²—å¯¹å‡†
+				//?????
 				StartCoarseAlign(&g_NAV_INS,&g_NAV_GNSS_RESULT);
-				//æ ¹æ®gpsä¿¡æ¯åŠå½“å‰æƒ¯å¯¼ä¿¡æ¯åˆå§‹åŒ–
+				//???gps??????????????????
 				InsInit(&g_NAV_INS.ins, TS, g_NAV_INS.ins.qnb, &g_NAV_GNSS_RESULT,g_Compensate_Params.gnssArmLength,&g_NAV_INS);
-				//åˆå§‹åŒ–EKFä¸­P;QçŸ©é˜µ
+				//?????KF??;Q???
 				KfInit(&g_NAV_INS.kf);
 				g_NAV_INS.insStatus=	NAV_INS_STATUS_KEEP;
 			}
 			break;
 
-			case NAV_INS_STATUS_KEEP:  //è¿›å…¥å¯¼èˆªçŠ¶æ€
+			case NAV_INS_STATUS_KEEP:  //??????????
 			{
-				//æƒ¯å¯¼æ•°æ®æ›´æ–°
+				//?????????
 				InsUpdate(&g_NAV_INS.imu,&g_NAV_INS.ins,&g_NAV_INS);
-				//è·å–æ—¶é—´æ›´æ–°çš„è½¬æ¢çŸ©é˜µ
+				//?????????????????
 				KfFk(&g_NAV_INS.ins,g_NAV_INS.Fk,&g_NAV_INS);
-#if 1//åŠ¨æ€æ£€æŸ¥,æ˜¯å¦éœ€è¦å¾…è€ƒè™‘
+#if 1//???????,???????????
 				static_detection(&g_NAV_INS.imu,g_NAV_INS.ins.vn,g_NAV_INS.ins.an, &g_STATIC_DETECTION);
-				if(MOTION_STATUS_MOVING != g_STATIC_DETECTION.state)//å½“å‰éåŠ¨æ€
+				if(MOTION_STATUS_MOVING != g_STATIC_DETECTION.state)//????????
 				{
-					//GNSS RTKå›ºå®šè§£
+					//GNSS RTK?????
 					if(NAV_GNSS_STATUS_RTK_FIX == g_NAV_GNSS_RESULT.gnssstatus)
 					{
 						g_NAV_INS.ins.att[2] = g_NAV_GNSS_RESULT.heading*DEG2RAD;
@@ -1530,20 +1540,20 @@ void TestMain()
 					}
 				}			
 #endif
-				//æ—¶é—´ä¸€æ­¥æ›´æ–°
+				//??????????
 				KfTimeUpdate(&g_NAV_INS.kf, g_NAV_INS.Fk,TS, 1);
-				//è®¡ç®—æƒ¯å¯¼ä¸å«å¯¼æ—¶é—´å·®å•ä½s
+				//??????????????????s
 				g_NAV_INS.dt = difftimeInc2gnss((double)g_NAV_INS.imu.second,(double)g_NAV_GNSS_RESULT.gpssecond);
 				GnssInsFusion(&g_NAV_INS.ins, &g_NAV_GNSS_RESULT, &g_NAV_INS.kf, g_Compensate_Params.gnssArmLength, g_NAV_INS.dt);
 				KfFeedback(&g_NAV_INS.kf,&g_NAV_INS.ins);
-				//æƒ¯å¯¼ä¿¡æ¯æ‰“å°
+				//?????????
 				PrintOutInsMsg();
-				//å«å¯¼ä¿¡æ¯æ‰“å°
+				//?????????
 				PrintOutGNSSMsg();
 			}
 			break;
 
-			case NAV_INS_STATUS_STOP:  //åœæ­¢æƒ¯å¯¼
+			case NAV_INS_STATUS_STOP:  //??????
 			{
 				StopNavigation();
 			}

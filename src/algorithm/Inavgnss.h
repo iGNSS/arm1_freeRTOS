@@ -52,7 +52,10 @@ typedef struct I_NAV_GNSS_RESULT_T {
 	double		latstd;//Î³¶È¾«¶È
 	double		logstd;//¾­¶È¾«¶È
 	double		hstd;//¸ß³Ì¾«¶È
-	//¶¨ËÙ¾«¶È
+
+	double hdgstddev;					/* èˆªå‘è§’æ ‡å‡†å·®, å•ä½ï¼š m*/
+	double ptchstddev;
+	
 	double		vestd;//¶«ÏòËÙ¶È¾«¶È
 	double		vnstd;//±±ÏòËÙ¶È¾«¶È
 	double		vustd;//ÌìÏòËÙ¶È¾«¶È

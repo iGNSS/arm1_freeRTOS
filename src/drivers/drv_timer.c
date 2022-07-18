@@ -91,7 +91,7 @@ void timer3_init(void)
     timer_initpara.prescaler         = 200 - 1;
     timer_initpara.alignedmode       = TIMER_COUNTER_EDGE;
     timer_initpara.counterdirection  = TIMER_COUNTER_UP;
-    timer_initpara.period            = 5000;
+    timer_initpara.period            = 10000;
     timer_initpara.clockdivision     = TIMER_CKDIV_DIV1;
     timer_initpara.repetitioncounter = 0;
 
