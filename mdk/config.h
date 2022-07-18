@@ -50,6 +50,9 @@
 
 //#define  configUse_RTC
 
+#define  COMM_MODE_RS422	0
+#define  COMM_MODE_RS232	1
+#define  configUse_COMM		COMM_MODE_RS422
 
 #define INS_USING_UART4
 #define INS_USING_UART4_DMA0

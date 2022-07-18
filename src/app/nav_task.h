@@ -76,12 +76,11 @@ typedef struct
 } CombineDataTypeDef;
 
 
-COMMON_EXT SemaphoreHandle_t xnvaTaskSemaphore;
-COMMON_EXT QueueHandle_t xNavQueue;
-COMMON_EXT uint8_t xNavStatus;
 
-
-void nav_task(void* arg);
+COMMON_EXT void nav_imu_task(void* arg);
+COMMON_EXT void nav_gnss_task(void* arg);
+COMMON_EXT void imu_notify(void);
+COMMON_EXT void gnss_notify(void);
 
 
 #ifdef __cplusplus

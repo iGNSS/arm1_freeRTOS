@@ -144,6 +144,7 @@ extern AppSettingTypeDef hDefaultSetting;
 
 uint8_t frame_setting_is_update(void);
 EventStatus usart_dispose_recvDataTask(void);
+void frameParse(uint8_t* pData, uint16_t len);
 void comm_handle(void);
 
 

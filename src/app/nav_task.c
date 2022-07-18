@@ -24,7 +24,9 @@
 
 CombineDataTypeDef combineData;
 QueueHandle_t xNavQueue;
-uint8_t xNavStatus;
+TaskHandle_t task_imu_handler, task_gnss_handler;
+
+uint8_t xQueueStatus;
 
 
 extern I_NAV_INS g_NAV_INS;
@@ -124,10 +126,19 @@ void InitialCompensateParm()
     g_Compensate_Params.gnssArmLength[2] = -0.099;
 }
 
-void nav_task(void* arg)
+void imu_notify(void)
 {
-    //rtc_update_struct *rtc;
-    uint8_t status;
+	xTaskNotify( task_imu_handler, ( 1UL << 0UL ), eSetBits );
+}
+
+void gnss_notify(void)
+{
+	xTaskNotify( task_gnss_handler, ( 1UL << 0UL ), eSetBits );
+}
+
+void nav_imu_task(void* arg)
+{
+    uint32_t ulImuNotifiedValue;
     InitialNavIncParm();
     //初始化静态检查参数
     InitialStaticDetectParm();
@@ -135,10 +146,12 @@ void nav_task(void* arg)
     InitialCompensateParm();
     while( 1 )
     {
-        if(pdTRUE == xQueueReceive( xNavQueue, &status, portMAX_DELAY))
+        xTaskNotifyWait( 0x00, /* Don't clear any notification bits on entry. */
+						0xffffffff, /* Reset the notification value to 0 on exit. */
+						&ulImuNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
+						portMAX_DELAY ); /* Block indefinitely. */
         {
-            //if(pdTRUE == xSemaphoreTake( xnvaTaskSemaphore, portMAX_DELAY))
-            if(1 == status)//IMU数据
+            if( ( ulImuNotifiedValue & 0x01 ) != 0 )
             {
                 memcpy((void*)&combineData.imuInfo.counter, (void*)&imuParseData.counter, sizeof(IMU_PARSE_DATA_TypeDef));
                 //Uart_SendMsg(UART_TXPORT_COMPLEX_8, 0, sizeof(IMU_PARSE_DATA_TypeDef), (uint8_t*)&combineData.imuInfo.counter);
@@ -146,15 +159,24 @@ void nav_task(void* arg)
                 //卡尔曼滤波
                 Kalman_smooth();
             }
-            else if(2 == status)//GNSS数据
+        }
+    }
+}
+
+void nav_gnss_task(void* arg)
+{
+    
+    uint32_t ulGnssNotifiedValue;
+    while( 1 )
+    {
+        xTaskNotifyWait( 0x00, /* Don't clear any notification bits on entry. */
+						0xffffffff, /* Reset the notification value to 0 on exit. */
+						&ulGnssNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
+						portMAX_DELAY ); /* Block indefinitely. */
+        {
+            if( ( ulGnssNotifiedValue & 0x01 ) != 0 )
             {
                 memcpy((void*)&combineData.gnssInfo.timestamp, (void*)&hGPSData.timestamp, sizeof(GPSDataTypeDef));
-            }
-            else if(3 == status)//串口发送至上位机
-            {
-                frame_pack_and_send(&g_Export_Result, &hGPSData);
-                //frame_writeDram();
-                //Oscilloscope();
             }
         }
     }

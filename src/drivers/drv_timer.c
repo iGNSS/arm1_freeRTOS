@@ -10,6 +10,8 @@
 #include "drv_timer.h"
 #include "nav_task.h"
 
+extern QueueHandle_t xCommQueue;
+
 void timer1_pwminputcapture_init(void)
 {
     timer_ic_parameter_struct timer_icinitpara;
@@ -150,6 +152,7 @@ void TIMER1_IRQHandler(void)
 
 void TIMER3_IRQHandler()
 {
+	uint8_t status;
 	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     if(SET == timer_interrupt_flag_get(TIMER3, TIMER_INT_UP))
     {
@@ -157,8 +160,8 @@ void TIMER3_IRQHandler()
 
    		//xSemaphoreGiveFromISR( xnvaTaskSemaphore, &xHigherPriorityTaskWoken );
     	//portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-    	xNavStatus = 3;
-    	xQueueSendFromISR(xNavQueue, &xNavStatus, &xHigherPriorityTaskWoken);
+    	status = 1;
+    	xQueueSendFromISR(xCommQueue, &status, &xHigherPriorityTaskWoken);
     	portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }

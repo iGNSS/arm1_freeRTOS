@@ -1678,8 +1678,8 @@ void gnss_fill_data(uint8_t* pData, uint16_t dataLen)
         {
 	        gnssSynFlg = 0;
 	        gnss_Fetch_Data();
-	        xNavStatus = 2;
-          xQueueSend(xNavQueue, &xNavStatus, 0);
+	        gnss_notify();
+          
         }
         
     }

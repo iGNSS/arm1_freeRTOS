@@ -83,6 +83,7 @@ OF SUCH DAMAGE.
 
 /* SRAM */
 uint8_t fpgaBuf[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
 static uint8_t fpga_comm2_rxbuffer[GNSS_BUFFER_SIZE];
 static uint8_t fpga_comm2_parse_rxbuffer[GNSS_BUFFER_SIZE];
 static uint16_t gnss_comm2_len = 0;
@@ -99,6 +100,7 @@ static uint16_t imu_comm5_len = 0;
 
 //static uint8_t comm2_fifo[GNSS_BUFFER_SIZE];
 //static uint8_t comm3_fifo[GNSS_BUFFER_SIZE];
+//CirQueue_t comm1_queue;
 CirQueue_t comm2_queue;
 CirQueue_t comm3_queue;
 
@@ -114,11 +116,17 @@ uint8_t fpga_dram_rd[1000];
 
 TaskHandle_t task_start_handler;
 TaskHandle_t task_gnss_comm2_handler, task_gnss_comm3_handler, task_imu_comm5_handler;
-SemaphoreHandle_t xGnssComm2Semaphore = NULL;
-SemaphoreHandle_t xGnssComm3Semaphore = NULL;
-SemaphoreHandle_t xImuComm5Semaphore  = NULL;
+
+SemaphoreHandle_t xGnssComm2Semaphore  = NULL;
+SemaphoreHandle_t xGnssComm3Semaphore  = NULL;
+SemaphoreHandle_t xImuComm5Semaphore   = NULL;
+
+QueueHandle_t xCommQueue;
 
 EventGroupHandle_t xFwdogEventGroup = NULL;
+
+extern TaskHandle_t task_imu_handler;
+extern TaskHandle_t task_gnss_handler;
 
 void syn_arm2(void)
 {
@@ -214,6 +222,53 @@ void system_halt(void)
 }
 #endif
 
+#if (configUse_COMM == COMM_MODE_RS422)
+#include "nav_task.h"
+
+static uint8_t fpga_comm1_rxbuffer[GNSS_BUFFER_SIZE];
+//static uint8_t fpga_comm1_parse_rxbuffer[GNSS_BUFFER_SIZE];
+static uint16_t rs422_comm1_len = 0;
+//static uint16_t rs422_comm1_parse_len = 0;
+//SemaphoreHandle_t xRs422Comm1Semaphore = NULL;
+
+void rs422_comm1_rx(void)
+{
+	uint8_t status;
+    rs422_comm1_len = Uart_RecvMsg(UART_RXPORT_COMPLEX_8, GNSS_BUFFER_SIZE, fpga_comm1_rxbuffer);
+    if(rs422_comm1_len)
+        //EnCirQueue(fpga_comm1_rxbuffer, rs422_comm1_len,comm1_queue);
+    {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        status = 2;
+        xQueueSendFromISR(xCommQueue, &status, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+}
+extern EXPORT_RESULT  g_Export_Result;
+void rs422_comm1_task(void* arg)
+{
+    uint8_t status;
+    for( ;; )
+    {
+        if(pdTRUE == xQueueReceive( xCommQueue, &status, pdMS_TO_TICKS(100)))//portMAX_DELAY
+        {
+            if(1 == status)//串口发送至上位机
+            {
+                frame_pack_and_send(&g_Export_Result, &hGPSData);
+                //frame_writeDram();
+                //Oscilloscope();
+            }
+            else if(2 == status)//解析上位机数据
+            {
+                frameParse(fpga_comm1_rxbuffer, rs422_comm1_len);
+                rs422_comm1_len = 0;
+            }
+        }
+
+    }
+}
+#endif
+
 void gnss_comm2_rx(void)
 {
     gnss_comm2_len = Uart_RecvMsg(UART_RXPORT_COMPLEX_9, GNSS_BUFFER_SIZE, fpga_comm2_rxbuffer);
@@ -273,7 +328,7 @@ void gnss_comm2_parse(uint8_t* pData, uint16_t dataLen)
         }
         else
         {
-			break;
+            break;
         }
     }
     while(1);
@@ -345,7 +400,7 @@ void gnss_comm3_parse(uint8_t* pData, uint16_t dataLen)
         }
         else
         {
-			break;
+            break;
         }
     }
     while(1);
@@ -371,7 +426,9 @@ void imu_comm5_rx(void)
 void fpga_int_hdr(void *args)
 {
     fpga_syn = 1;
-
+#if (configUse_COMM == COMM_MODE_RS422)
+    rs422_comm1_rx();
+#endif
     gnss_comm2_rx();
 
     gnss_comm3_rx();
@@ -410,7 +467,9 @@ void gpio_init(void)
 
 void cir_queue_init(void)
 {
-	comm2_queue = CirQueueGenericCreate(GNSS_BUFFER_SIZE);
+    //comm1_queue = CirQueueGenericCreate(GNSS_BUFFER_SIZE);
+    //configASSERT(comm1_queue);
+    comm2_queue = CirQueueGenericCreate(GNSS_BUFFER_SIZE);
     configASSERT(comm2_queue);
     comm3_queue = CirQueueGenericCreate(GNSS_BUFFER_SIZE);
     configASSERT(comm3_queue);
@@ -449,8 +508,8 @@ static void peripherals_init(void)
 
     rtc_configuration();
 
-	cir_queue_init();
-	
+    cir_queue_init();
+
 //    fwdog_init();
 }
 
@@ -466,8 +525,6 @@ void gnss_comm2_task(void* arg)
             xEventGroupSetBits(
                 xFwdogEventGroup, /* The event group being updated. */
                 TASK_GNSS_COMM2_BIT);
-
-            //ARM1_TO_ARM2_SYN;	//syn call
         }
 
     }
@@ -484,8 +541,6 @@ void gnss_comm3_task(void* arg)
             xEventGroupSetBits(
                 xFwdogEventGroup, /* The event group being updated. */
                 TASK_GNSS_COMM3_BIT);
-
-            //ARM1_TO_ARM2_SYN;	//syn call
         }
 
     }
@@ -500,15 +555,14 @@ void imu_comm5_task(void* arg)
         if(pdTRUE == xSemaphoreTake( xImuComm5Semaphore, portMAX_DELAY))//pdMS_TO_TICKS(100)
         {
             frame_fill_imu(fpga_comm5_rxbuffer, imu_comm5_len); //send to fpga
-            xNavStatus = 1;
-            xQueueSend(xNavQueue, &xNavStatus, 0);
+            imu_notify();
 
             if(ucTimeOneSecondChangeSecond != RSOFT_RTC_SECOND)
             {
                 ucTimeOneSecondChangeSecond = RSOFT_RTC_SECOND;
-                #ifdef configUse_debug
+#ifdef configUse_debug
                 //Uart_SendMsg(UART_TXPORT_COMPLEX_8, 0, imu_comm5_len, fpga_comm5_rxbuffer);
-                #endif
+#endif
             }
 
             imu_comm5_len = 0;
@@ -541,10 +595,49 @@ void fwdog_task(void* arg)
     }
 }
 
+void adjust_rtc(void)
+{
+    static uint8_t ucTimeOneSecondChangeHour = 0xff;
+    static uint8_t rtcAdjInit = 0;
+
+    //开机等待时间有效校准一次，之后每小时校准一次
+    if(rtcAdjInit == 0)
+    {
+        if(INS_EOK == rtc_gnss_adjust_time())
+        {
+            rtcAdjInit = 1;
+            rtc_update();
+            ucTimeOneSecondChangeHour = RSOFT_RTC_HOUR;
+        }
+    }
+    else
+    {
+        if(ucTimeOneSecondChangeHour != RSOFT_RTC_HOUR)
+        {
+            ucTimeOneSecondChangeHour = RSOFT_RTC_HOUR;
+
+            rtc_gnss_adjust_time();
+        }
+    }
+}
+
 void start_task(void* arg)
 {
     taskENTER_CRITICAL();
-
+#if (configUse_COMM == COMM_MODE_RS422)
+    xTaskCreate( rs422_comm1_task,
+                 "rs422_comm1_task",
+                 configMINIMAL_STACK_SIZE,
+                 ( void * ) NULL,
+                 tskIDLE_PRIORITY + 4,
+                 NULL );
+#endif
+    xTaskCreate( imu_comm5_task,
+                 "imu_comm5_task",
+                 configMINIMAL_STACK_SIZE,
+                 ( void * ) NULL,
+                 tskIDLE_PRIORITY + 5,
+                 (TaskHandle_t*)&task_imu_comm5_handler );
     xTaskCreate( gnss_comm2_task,
                  "gnss_comm2_task",
                  configMINIMAL_STACK_SIZE,
@@ -555,26 +648,27 @@ void start_task(void* arg)
                  "gnss_comm3_task",
                  configMINIMAL_STACK_SIZE,
                  ( void * ) NULL,
-                 tskIDLE_PRIORITY + 5,
+                 tskIDLE_PRIORITY + 7,
                  (TaskHandle_t*)&task_gnss_comm3_handler );
-    xTaskCreate( imu_comm5_task,
-                 "imu_comm5_task",
-                 configMINIMAL_STACK_SIZE,
-                 ( void * ) NULL,
-                 tskIDLE_PRIORITY + 4,
-                 (TaskHandle_t*)&task_imu_comm5_handler );
+
 //    xTaskCreate( fwdog_task,
 //                 "fwdog_task",
 //                 configMINIMAL_STACK_SIZE,
 //                 ( void * ) NULL,
 //                 tskIDLE_PRIORITY + 3,
 //                 NULL);
-    xTaskCreate( nav_task,
+    xTaskCreate( nav_gnss_task,
+                 "nav_gnss_task",
+                 configMINIMAL_STACK_SIZE,
+                 ( void * ) NULL,
+                 tskIDLE_PRIORITY + 8,
+                 (TaskHandle_t*)&task_gnss_handler );
+    xTaskCreate( nav_imu_task,
                  "nav_task",
                  configMINIMAL_STACK_SIZE,
                  ( void * ) NULL,
-                 tskIDLE_PRIORITY + 7,
-                 NULL );
+                 tskIDLE_PRIORITY + 9,
+                 (TaskHandle_t*)&task_imu_handler );
     vTaskDelete(task_start_handler);
 
     taskEXIT_CRITICAL();
@@ -592,17 +686,17 @@ int main(void)
     configASSERT( xImuComm5Semaphore );
     //xnvaTaskSemaphore = xSemaphoreCreateBinary();
     //configASSERT( xnvaTaskSemaphore );
-    xNavQueue = xQueueCreate(10, sizeof(uint8_t));
-    configASSERT( xNavQueue );
+    xCommQueue = xQueueCreate(10, sizeof(uint8_t));
+    configASSERT( xCommQueue );
     xFwdogEventGroup = xEventGroupCreate();
     configASSERT( xFwdogEventGroup );
     prvSetupHardware();
     peripherals_init();
 //    fpga_dram_test();
-    #ifdef configUse_debug
+#ifdef configUse_debug
     dbg_periph_enable(DBG_FWDGT_HOLD);
     dbg_periph_enable(DBG_WWDGT_HOLD);
-    #endif
+#endif
     //printf("helloworld\r\n");
     xTaskCreate( start_task,
                  "start_task",
@@ -623,9 +717,11 @@ int main(void)
 
 void vApplicationIdleHook( void )
 {
-
+#if (configUse_COMM == COMM_MODE_RS232)
     comm_handle();
+#endif
     rtc_update();
+    adjust_rtc();
 }
 
 void vApplicationTickHook( void )
