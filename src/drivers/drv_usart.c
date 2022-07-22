@@ -42,19 +42,6 @@ static uint32_t gd32_usart_configure(struct serial_device *serial)
     return INS_EOK;
 }
 
-uint32_t gd32_usart_set_baud(uint32_t usart_device,uint32_t baud_rate,uint8_t parity,uint8_t data_bits,uint8_t stop_bits)
-{
-    // USART configure
-    usart_disable(usart_device);
-    usart_baudrate_set(usart_device, baud_rate);
-    usart_word_length_set(usart_device, data_bits);
-    usart_parity_config(usart_device, parity);
-    usart_stop_bit_set(usart_device, stop_bits);
-	usart_enable(usart_device);
-
-    return INS_EOK;
-}
-
 static uint32_t gd32_usart_control(struct serial_device *serial, int cmd, void *arg)
 {
     struct gd32_usart* usart = serial->usart;
@@ -138,6 +125,21 @@ struct serial_device serial4 =
     NULL,
     NULL
 };
+
+uint32_t gd32_usart_set_baud(uint32_t baud_rate)
+{
+	struct gd32_usart *usart       = serial4.usart;
+	struct serial_configure cfg  = serial4.config;
+    // USART configure
+    usart_disable(usart->usart_device);
+    usart_baudrate_set(usart->usart_device, baud_rate);
+    usart_word_length_set(usart->usart_device, cfg.data_bits);
+    usart_parity_config(usart->usart_device, cfg.parity);
+    usart_stop_bit_set(usart->usart_device, cfg.stop_bits);
+	usart_enable(usart->usart_device);
+
+    return INS_EOK;
+}
 
 #if defined(INS_USING_UART4_DMA0)
 #define UART4_DATA_ADDRESS      ((uint32_t)&USART_DATA(UART4))
@@ -264,7 +266,7 @@ void DMA0_Channel7_IRQHandler(void)
     taskEXIT_CRITICAL_FROM_ISR(uxSavedInterruptStatus);
 }
 
-uint16_t uart4_dma_recv_data(uint8_t* buf)
+uint16_t uart4_dma_recv_data(uint8_t* buf, int size)
 {
     uint16_t  recvLen = 0;
 
@@ -272,6 +274,7 @@ uint16_t uart4_dma_recv_data(uint8_t* buf)
     {
         g_UartData.recvStatus = 0x00;
         recvLen = g_UartData.recvLength;
+        if(size < recvLen)recvLen = size;
         memcpy(buf, g_UartData.recvBuffer, recvLen);
     }
 
@@ -431,7 +434,7 @@ static void gpio_configuration(void)
 uint32_t gd32_usart_read(void *buffer, uint32_t size)
 {
 #if defined(INS_USING_UART4_DMA0)
-	return uart4_dma_recv_data(buffer);
+	return uart4_dma_recv_data(buffer, size);
 #else
     return _serial_int_rx(&serial4, buffer, size);
 #endif

@@ -118,6 +118,24 @@ static void prvSetupHardware( void )
 
 
 //////////////////////////////////////////////////////////////////////////////////
+static uint8_t fpga_comm4_rxbuffer[IMU_BUFFER_SIZE];
+static uint16_t imu_comm4_len = 0;
+
+void ifog_comm4_rx(void)
+{
+    imu_comm4_len = Uart_RecvMsg(UART_RXPORT_COMPLEX_11, 23, fpga_comm4_rxbuffer);
+
+    if(imu_comm4_len == 23)
+    {
+        //BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+        //xSemaphoreGiveFromISR( xImuComm5Semaphore, &xHigherPriorityTaskWoken );
+
+        //portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+    }
+
+}
+
 void fpga_int_hdr(void *args)
 {
     fpga_syn = 1;
@@ -127,6 +145,8 @@ void fpga_int_hdr(void *args)
     gnss_comm2_rx();
 
     gnss_comm3_rx();
+
+//    ifog_comm4_rx();
 
     imu_comm5_rx();
 }
@@ -169,8 +189,8 @@ static void peripherals_init(void)
     //Uart_TxInit(UART_TXPORT_RS232_1, UART_BAUDRATE_115200BPS, UART_PARITY_NONE, UART_STOPBIT_ONE, UART_DEFAULT, UART_ENABLE);
     //Uart_RxInit(UART_RXPORT_RS232_1, UART_BAUDRATE_115200BPS, UART_PARITY_NONE, UART_STOPBIT_ONE, UART_DEFAULT, UART_ENABLE);
 
-    Uart_TxInit(UART_TXPORT_COMPLEX_8, UART_BAUDRATE_230400BPS, UART_PARITY_NONE, UART_STOPBIT_ONE, UART_RS422, UART_ENABLE);
-    Uart_RxInit(UART_RXPORT_COMPLEX_8, UART_BAUDRATE_230400BPS, UART_PARITY_NONE, UART_STOPBIT_ONE, UART_RS422, UART_ENABLE);
+    //Uart_TxInit(UART_TXPORT_COMPLEX_8, UART_BAUDRATE_230400BPS, UART_PARITY_NONE, UART_STOPBIT_ONE, UART_RS422, UART_ENABLE);
+    //Uart_RxInit(UART_RXPORT_COMPLEX_8, UART_BAUDRATE_230400BPS, UART_PARITY_NONE, UART_STOPBIT_ONE, UART_RS422, UART_ENABLE);
 
     Uart_TxInit(UART_TXPORT_COMPLEX_9, UART_BAUDRATE_115200BPS, UART_PARITY_NONE, UART_STOPBIT_ONE, UART_RS232, UART_ENABLE);
     Uart_RxInit(UART_RXPORT_COMPLEX_9, UART_BAUDRATE_115200BPS, UART_PARITY_NONE, UART_STOPBIT_ONE, UART_RS232, UART_ENABLE);
@@ -195,12 +215,10 @@ static void peripherals_init(void)
     rtc_configuration();
 
 	imuTask_init();
+
+	gnssTask_init();
 	
-    gnssTask_init();
-	
-#if (configUse_COMM == COMM_MODE_RS422)
-    rs422_comm1_init();
-#endif
+	comm_store_init();
 //    fwdog_init();
 }
 
@@ -226,32 +244,6 @@ void fwdog_task(void* arg)
     }
 }
 
-void adjust_rtc(void)
-{
-    static uint8_t ucTimeOneSecondChangeHour = 0xff;
-    static uint8_t rtcAdjInit = 0;
-
-    //开机等待时间有效校准一次，之后每小时校准一次
-    if(rtcAdjInit == 0)
-    {
-        if(INS_EOK == rtc_gnss_adjust_time())
-        {
-            rtcAdjInit = 1;
-            rtc_update();
-            ucTimeOneSecondChangeHour = RSOFT_RTC_HOUR;
-        }
-    }
-    else
-    {
-        if(ucTimeOneSecondChangeHour != RSOFT_RTC_HOUR)
-        {
-            ucTimeOneSecondChangeHour = RSOFT_RTC_HOUR;
-
-            rtc_gnss_adjust_time();
-        }
-    }
-}
-
 void start_task(void* arg)
 {
     taskENTER_CRITICAL();
@@ -259,17 +251,17 @@ void start_task(void* arg)
     rs422_task_create();
 #endif
     imu_task_create();
-    
-	gnss_task_create();
-	
-	nav_task_create();
+
+    gnss_task_create();
+
+    nav_task_create();
 //    xTaskCreate( fwdog_task,
 //                 "fwdog_task",
 //                 configMINIMAL_STACK_SIZE,
 //                 ( void * ) NULL,
 //                 tskIDLE_PRIORITY + 3,
 //                 NULL);
-    
+
     vTaskDelete(task_start_handler);
 
     taskEXIT_CRITICAL();
@@ -283,12 +275,15 @@ int main(void)
     configASSERT( xFwdogEventGroup );
     prvSetupHardware();
     peripherals_init();
-//    fpga_dram_test();
+#ifdef	configUse_SystemView
+    SEGGER_SYSVIEW_Conf();
+#endif
+	
 #ifdef configUse_debug
     dbg_periph_enable(DBG_FWDGT_HOLD);
     dbg_periph_enable(DBG_WWDGT_HOLD);
 #endif
-    
+
     xTaskCreate( start_task,
                  "start_task",
                  configMINIMAL_STACK_SIZE,
@@ -305,7 +300,7 @@ int main(void)
 /**
   * @}
   */
-
+#if (1 == configUSE_IDLE_HOOK)
 void vApplicationIdleHook( void )
 {
 #if (configUse_COMM == COMM_MODE_RS232)
@@ -314,11 +309,14 @@ void vApplicationIdleHook( void )
     rtc_update();
     adjust_rtc();
 }
+#endif
 
+#if (1 == configUSE_TICK_HOOK)
 void vApplicationTickHook( void )
 {
 
 }
+#endif
 
 void OS_PreSleepProcessing(uint32_t ulExpectedIdleTime)
 {
@@ -352,6 +350,92 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 
     for( ;; );
 }
+
+#ifdef	configUse_SystemView
+
+/*********************************************************************
+*
+*       vMainConfigureTimerForRunTimeStats
+*
+*  Function description
+*    The Blinky build configuration does not include run time
+*    stats gathering, however, the Full and Blinky build configurations
+*    share a FreeRTOSConfig.h file.
+*    Therefore, dummy run time stats functions need to be defined
+*    to keep the linker happy.
+*
+*/
+void vMainConfigureTimerForRunTimeStats(void);
+void vMainConfigureTimerForRunTimeStats(void) {
+}
+
+/*********************************************************************
+*
+*       ulMainGetRunTimeCounterValue
+*
+*/
+unsigned long ulMainGetRunTimeCounterValue(void);
+unsigned long ulMainGetRunTimeCounterValue(void) {
+    return 0UL;
+}
+
+/*********************************************************************
+*
+*       vApplicationGetIdleTaskMemory()
+*
+*/
+#if configSUPPORT_STATIC_ALLOCATION == 1
+
+void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize ) {
+    /* If the buffers to be provided to the Idle task are declared inside this
+    function then they must be declared static - otherwise they will be allocated on
+    the stack and so not exists after this function exits. */
+    static StaticTask_t xIdleTaskTCB;
+    static StackType_t uxIdleTaskStack[ configMINIMAL_STACK_SIZE ];
+
+    /* Pass out a pointer to the StaticTask_t structure in which the Idle task's
+    state will be stored. */
+    *ppxIdleTaskTCBBuffer = &xIdleTaskTCB;
+
+    /* Pass out the array that will be used as the Idle task's stack. */
+    *ppxIdleTaskStackBuffer = uxIdleTaskStack;
+
+    /* Pass out the size of the array pointed to by *ppxIdleTaskStackBuffer.
+    Note that, as the array is necessarily of type StackType_t,
+    configMINIMAL_STACK_SIZE is specified in words, not bytes. */
+    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+
+
+/*********************************************************************
+*
+*       vApplicationGetTimerTaskMemory()
+*
+*/
+/*-----------------------------------------------------------*/
+
+void vApplicationGetTimerTaskMemory( StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize ) {
+    /* If the buffers to be provided to the Timer task are declared inside this
+    function then they must be declared static - otherwise they will be allocated on
+    the stack and so not exists after this function exits. */
+    static StaticTask_t xTimerTaskTCB;
+    static StackType_t uxTimerTaskStack[ configTIMER_TASK_STACK_DEPTH ];
+
+    /* Pass out a pointer to the StaticTask_t structure in which the Timer
+    task's state will be stored. */
+    *ppxTimerTaskTCBBuffer = &xTimerTaskTCB;
+
+    /* Pass out the array that will be used as the Timer task's stack. */
+    *ppxTimerTaskStackBuffer = uxTimerTaskStack;
+
+    /* Pass out the size of the array pointed to by *ppxTimerTaskStackBuffer.
+    Note that, as the array is necessarily of type StackType_t,
+    configMINIMAL_STACK_SIZE is specified in words, not bytes. */
+    *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
+}
+#endif
+
+#endif
 
 /* retarget the C library printf function to the USART */
 int fputc(int ch, FILE *f)

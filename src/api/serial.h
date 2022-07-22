@@ -21,7 +21,7 @@
 
 
 #ifndef USART_SERIAL_RB_BUFSZ
-#define USART_SERIAL_RB_BUFSZ           100
+#define USART_SERIAL_RB_BUFSZ           200
 #endif
 
 #define INS_SERIAL_EVENT_RX_IND          0x01    /* Rx indication */

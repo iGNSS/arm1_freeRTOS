@@ -33,8 +33,8 @@ static uint8_t fpga_comm3_parse_rxbuffer[GNSS_BUFFER_SIZE];
 static uint16_t gnss_comm3_len = 0;
 static uint16_t gnss_comm3_parse_len = 0;
 
-CirQueue_t comm2_queue;
-CirQueue_t comm3_queue;
+CirQueue_t comm2_queue  = NULL;
+CirQueue_t comm3_queue  = NULL;
 
 SemaphoreHandle_t xGnssComm2Semaphore  = NULL;
 SemaphoreHandle_t xGnssComm3Semaphore  = NULL;
@@ -46,7 +46,7 @@ extern EventGroupHandle_t xFwdogEventGroup;
 void gnss_comm2_rx(void)
 {
     gnss_comm2_len = Uart_RecvMsg(UART_RXPORT_COMPLEX_9, GNSS_BUFFER_SIZE, fpga_comm2_rxbuffer);
-    EnCirQueue(fpga_comm2_rxbuffer, gnss_comm2_len,comm2_queue);
+    if(Q_SUCCESS == EnCirQueue(fpga_comm2_rxbuffer, gnss_comm2_len,comm2_queue))
     {
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
@@ -57,7 +57,7 @@ void gnss_comm2_rx(void)
 
 }
 
-void gnss_comm2_parse(uint8_t* pData, uint16_t dataLen)
+void gnss_comm2_parse(void)
 {
     uint8_t temp;
     do
@@ -113,7 +113,7 @@ void gnss_comm3_rx(void)
 {
 
     gnss_comm3_len = Uart_RecvMsg(UART_RXPORT_COMPLEX_10, GNSS_BUFFER_SIZE, fpga_comm3_rxbuffer);
-    EnCirQueue(fpga_comm3_rxbuffer, gnss_comm3_len,comm3_queue);
+    if(Q_SUCCESS == EnCirQueue(fpga_comm3_rxbuffer, gnss_comm3_len,comm3_queue))
     {
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
@@ -123,7 +123,7 @@ void gnss_comm3_rx(void)
     }
 }
 
-void gnss_comm3_parse(uint8_t* pData, uint16_t dataLen)
+void gnss_comm3_parse(void)
 {
     uint8_t temp;
     do
@@ -183,12 +183,12 @@ void gnss_comm3_parse(uint8_t* pData, uint16_t dataLen)
 
 void gnss_comm2_task(void* arg)
 {
-
+    
     for( ;; )
     {
         if(pdTRUE == xSemaphoreTake( xGnssComm2Semaphore, portMAX_DELAY))//pdMS_TO_TICKS(100)
         {
-            gnss_comm2_parse(fpga_comm2_rxbuffer, gnss_comm2_len); //send to fpga
+            gnss_comm2_parse(); //send to fpga
             gnss_comm2_len = 0;
             xEventGroupSetBits(
                 xFwdogEventGroup, /* The event group being updated. */
@@ -200,12 +200,12 @@ void gnss_comm2_task(void* arg)
 
 void gnss_comm3_task(void* arg)
 {
-
+    
     for( ;; )
     {
         if(pdTRUE == xSemaphoreTake( xGnssComm3Semaphore, portMAX_DELAY))//pdMS_TO_TICKS(100)
         {
-            gnss_comm3_parse(fpga_comm3_rxbuffer, gnss_comm3_len); //send to fpga
+            gnss_comm3_parse(); //send to fpga
             xEventGroupSetBits(
                 xFwdogEventGroup, /* The event group being updated. */
                 TASK_GNSS_COMM3_BIT);
@@ -216,7 +216,7 @@ void gnss_comm3_task(void* arg)
 
 void gnss_task_create(void)
 {
-	xTaskCreate( gnss_comm2_task,
+    xTaskCreate( gnss_comm2_task,
                  "gnss_comm2_task",
                  configMINIMAL_STACK_SIZE,
                  ( void * ) NULL,
@@ -232,7 +232,7 @@ void gnss_task_create(void)
 
 void gnssTask_init(void)
 {
-	xGnssComm2Semaphore = xSemaphoreCreateBinary();
+    xGnssComm2Semaphore = xSemaphoreCreateBinary();
     configASSERT( xGnssComm2Semaphore );
     xGnssComm3Semaphore = xSemaphoreCreateBinary();
     configASSERT( xGnssComm3Semaphore );

@@ -128,12 +128,12 @@ void InitialCompensateParm()
 
 void imu_notify(void)
 {
-	xTaskNotify( task_imu_handler, ( 1UL << 0UL ), eSetBits );
+    xTaskNotify( task_imu_handler, ( 1UL << 0UL ), eSetBits );
 }
 
 void gnss_notify(void)
 {
-	xTaskNotify( task_gnss_handler, ( 1UL << 0UL ), eSetBits );
+    xTaskNotify( task_gnss_handler, ( 1UL << 0UL ), eSetBits );
 }
 
 void nav_imu_task(void* arg)
@@ -147,9 +147,9 @@ void nav_imu_task(void* arg)
     while( 1 )
     {
         xTaskNotifyWait( 0x00, /* Don't clear any notification bits on entry. */
-						0xffffffff, /* Reset the notification value to 0 on exit. */
-						&ulImuNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
-						portMAX_DELAY ); /* Block indefinitely. */
+                         0xffffffff, /* Reset the notification value to 0 on exit. */
+                         &ulImuNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
+                         portMAX_DELAY ); /* Block indefinitely. */
         {
             if( ( ulImuNotifiedValue & 0x01 ) != 0 )
             {
@@ -165,14 +165,14 @@ void nav_imu_task(void* arg)
 
 void nav_gnss_task(void* arg)
 {
-    
+
     uint32_t ulGnssNotifiedValue;
     while( 1 )
     {
         xTaskNotifyWait( 0x00, /* Don't clear any notification bits on entry. */
-						0xffffffff, /* Reset the notification value to 0 on exit. */
-						&ulGnssNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
-						portMAX_DELAY ); /* Block indefinitely. */
+                         0xffffffff, /* Reset the notification value to 0 on exit. */
+                         &ulGnssNotifiedValue, /* Notified value pass out in ulNotifiedValue. */
+                         portMAX_DELAY ); /* Block indefinitely. */
         {
             if( ( ulGnssNotifiedValue & 0x01 ) != 0 )
             {
@@ -184,7 +184,7 @@ void nav_gnss_task(void* arg)
 
 void nav_task_create(void)
 {
-	xTaskCreate( nav_gnss_task,
+    xTaskCreate( nav_gnss_task,
                  "nav_gnss_task",
                  configMINIMAL_STACK_SIZE,
                  ( void * ) NULL,

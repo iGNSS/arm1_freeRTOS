@@ -1,5 +1,5 @@
 /*
- * FreeRTOS Kernel V10.3.1
+ * FreeRTOS Kernel V10.4.3
  * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -47,7 +47,19 @@
 extern uint32_t SystemCoreClock;
 #endif
 
+//#define	configUse_SystemView
+#ifdef	configUse_SystemView
+extern volatile uint32_t FreeRTOSRunTimeTicks;
+extern void ConfigureTimeForRunTimeStats(void);
 
+#define configSUPPORT_STATIC_ALLOCATION			1
+#define configSUPPORT_DYNAMIC_ALLOCATION		1
+#define INCLUDE_xTaskGetIdleTaskHandle  1
+#define INCLUDE_pxTaskGetStackStart     1
+
+#define portCONFIGURE_TIMER_FOR_RUN_TIME_STATS() ConfigureTimeForRunTimeStats()
+#define portGET_RUN_TIME_COUNTER_VALUE() FreeRTOSRunTimeTicks
+#endif
 
 #define configUSE_PREEMPTION					1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 1
@@ -57,9 +69,13 @@ extern uint32_t SystemCoreClock;
 #define configTICK_RATE_HZ						( ( TickType_t ) 1000 )
 #define configMAX_PRIORITIES					( 15 )
 #define configMINIMAL_STACK_SIZE				( ( unsigned short ) 1024 )
-#define configTOTAL_HEAP_SIZE					( ( size_t ) ( 100 * 1024 ) )
+#define configTOTAL_HEAP_SIZE					( ( size_t ) ( 50 * 1024 ) )
 #define configMAX_TASK_NAME_LEN					( 8 )
+#ifdef	configUse_SystemView
+#define configUSE_TRACE_FACILITY				1
+#else
 #define configUSE_TRACE_FACILITY				0
+#endif
 #define configUSE_16_BIT_TICKS					0
 #define configIDLE_SHOULD_YIELD					0
 #define configUSE_MUTEXES						1
@@ -69,9 +85,14 @@ extern uint32_t SystemCoreClock;
 #define configUSE_MALLOC_FAILED_HOOK			1
 #define configUSE_APPLICATION_TASK_TAG			0
 #define configUSE_COUNTING_SEMAPHORES			1
+#ifdef	configUse_SystemView
+#define configGENERATE_RUN_TIME_STATS			1
+#else
 #define configGENERATE_RUN_TIME_STATS			0
+#endif
 #define configUSE_QUEUE_SETS					1
 #define configENFORCE_SYSTEM_CALLS_FROM_KERNEL_ONLY 1
+
 
 
 /* Co-routine definitions. */

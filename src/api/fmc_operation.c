@@ -142,14 +142,14 @@ uint32_t sector_name_to_number(uint32_t sector_name)
 void fmc_erase_sector_by_address(uint32_t address)
 {
     fmc_sector_info_struct sector_info;
-    printf("\r\nFMC erase operation:\n");
+    
     /* get information about the sector in which the specified address is located */
     sector_info = fmc_sector_info_get(address);
     if(FMC_WRONG_SECTOR_NAME == sector_info.sector_name){
-        printf("\r\nWrong address!\n");
+        
         while(1);
     }else{
-        printf("\r\nErase start ......\n");
+        
         /* unlock the flash program erase controller */
         fmc_unlock(); 
         /* clear pending flags */
@@ -160,11 +160,7 @@ void fmc_erase_sector_by_address(uint32_t address)
         }
         /* lock the flash program erase controller */
         fmc_lock();
-        printf("\r\nAddress 0x%08X is located in the : SECTOR_NUMBER_%d !\n", address, sector_info.sector_name);
-        printf("\r\nSector range: 0x%08X to 0x%08X\n", sector_info.sector_start_addr, sector_info.sector_end_addr);
-        printf("\r\nSector size: %d KB\n", (sector_info.sector_size/1024));
-        printf("\r\nErase success!\n");
-        printf("\r\n");
+        
     }
 }
 
@@ -314,7 +310,6 @@ void fmc_write_8bit_data(uint32_t address, uint16_t length, int8_t* data_8)
     fmc_sector_info_struct end_sector_info;
     uint32_t sector_num,i;
     
-    printf("\r\nFMC half_word program operation:\n");
     /* unlock the flash program erase controller */
     fmc_unlock();
     /* clear pending flags */
@@ -340,8 +335,7 @@ void fmc_write_8bit_data(uint32_t address, uint16_t length, int8_t* data_8)
     }
     /* lock the flash program erase controller */
     fmc_lock();
-    printf("\r\nWrite complete!\n");
-    printf("\r\n");
+   
 }
 
 /*!
@@ -355,15 +349,11 @@ void fmc_write_8bit_data(uint32_t address, uint16_t length, int8_t* data_8)
 void fmc_read_8bit_data(uint32_t address, uint16_t length, int8_t* data_8)
 {
     uint8_t i;
-    printf("\r\nRead data from 0x%02X\n", address);
-    printf("\r\n");
+    
     for(i=0; i<length; i++){
         data_8[i] = *(__IO int8_t*)address;
-        printf("0x%02X  ", data_8[i]);
         address++;
     }
-    printf("\r\nRead end\n"); 
-    printf("\r\n");
 }
 
 #define ERASE_ADDRESS               ((uint32_t)0x08104000)
@@ -375,7 +365,7 @@ int32_t data_32_1[10] = {0x5555AAAA,0x5555AAAA,0x5555AAAA,0x5555AAAA,0x5555AAAA,
 int32_t data_32_2[10];
 int16_t data_16_1[10] = {0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,};
 int16_t data_16_2[10];
-int8_t data_8_1[10] = {0x3D,0x3D,0x3D,0x3D,0x3D,0x3D,0x3D,0x3D,0x3D,0x3D};
+int8_t data_8_1[10] = {0xff,0x3D,0xff,0x3D,0x3D,0xff,0x3D,0x3D,0x3D,0x3D};
 int8_t data_8_2[10];
 
 void fmc_selftest(void)

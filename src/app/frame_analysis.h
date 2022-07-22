@@ -6,9 +6,9 @@
 
 #undef COMMON_EXT
 #ifdef  __GOL_FRAME_ANALYSIS_C__
-    #define COMMON_EXT
+#define COMMON_EXT
 #else
-    #define COMMON_EXT extern
+#define COMMON_EXT extern
 #endif
 
 
@@ -66,16 +66,16 @@ typedef __packed struct poll_data
 
 typedef union
 {
-	struct
-	{
-		uint8_t pos:1;
-		uint8_t spd:1;
-		uint8_t posture:1;
-		uint8_t courseAngle:1;
-		uint8_t hold:4;
-	}statusBits;
-	uint8_t dev_status;
-}DEV_StatusTypedef;
+    struct
+    {
+        uint8_t pos:1;
+        uint8_t spd:1;
+        uint8_t posture:1;
+        uint8_t courseAngle:1;
+        uint8_t hold:4;
+    } statusBits;
+    uint8_t dev_status;
+} DEV_StatusTypedef;
 
 typedef __packed struct
 {
@@ -95,7 +95,7 @@ typedef __packed struct
     short				vn;			//北向速度
     short				ve;			//东向速度
     short				vu;			//地向速度
-    uint8_t				status;		//bit0:位置 bit1:速度 bit2:姿态 bit3:航向角 
+    uint8_t				status;		//bit0:位置 bit1:速度 bit2:姿态 bit3:航向角
     uint8_t				reserved[6];
     POLL_DATA			poll_frame;
     uint8_t				xor_verify1;

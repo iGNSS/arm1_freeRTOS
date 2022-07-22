@@ -184,17 +184,17 @@ void frame_pack_and_send(void* imu, void *gps)
 
     rs422_frame.data_stream.status = 0;
     if(gnss->ResolveState[0] == 0)
-    	rs422_frame.data_stream.status |= 0x1;
+        rs422_frame.data_stream.status |= 0x1;
     else
-    	rs422_frame.data_stream.status &= ~0x1;
+        rs422_frame.data_stream.status &= ~0x1;
     if(gnss->ResolveState[1] == 0)
-    	rs422_frame.data_stream.status |= 0x2;
+        rs422_frame.data_stream.status |= 0x2;
     else
-    	rs422_frame.data_stream.status &= ~0x2;
+        rs422_frame.data_stream.status &= ~0x2;
     if(gnss->ResolveState[2] == 0)
-    	rs422_frame.data_stream.status |= 0x4;
+        rs422_frame.data_stream.status |= 0x4;
     else
-    	rs422_frame.data_stream.status &= ~0x4;
+        rs422_frame.data_stream.status &= ~0x4;
     //pull_couter = 3;
     switch(pull_couter)
     {
@@ -269,11 +269,11 @@ void frame_pack_and_send(void* imu, void *gps)
     xor = xor_check(rs422_frame.data_stream.header, sizeof(rs422_frame.data_stream) - 1 );
     rs422_frame.data_stream.xor_verify2 = xor;
 
-	//if(INS_EOK == gnss_isLocation())
-	{
-	    //gd32_usart_write((uint8_t*)&rs422_frame.data_stream.header[0],sizeof(rs422_frame.data_stream));
-	    Uart_SendMsg(UART_TXPORT_COMPLEX_8, 0, sizeof(rs422_frame.data_stream), (uint8_t*)&rs422_frame.data_stream.header[0]);
-	}
+    //if(INS_EOK == gnss_isLocation())
+    {
+        //gd32_usart_write((uint8_t*)&rs422_frame.data_stream.header[0],sizeof(rs422_frame.data_stream));
+        Uart_SendMsg(UART_TXPORT_COMPLEX_8, 0, sizeof(rs422_frame.data_stream), (uint8_t*)&rs422_frame.data_stream.header[0]);
+    }
 #undef	Accel_Scale
 #undef	Rate_Scale
 #undef	Angle_Scale

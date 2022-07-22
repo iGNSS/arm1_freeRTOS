@@ -282,5 +282,32 @@ uint8_t rtc_gnss_adjust_time(void)
 
     return ret;
 }
+
+void adjust_rtc(void)
+{
+    static uint8_t ucTimeOneSecondChangeHour = 0xff;
+    static uint8_t rtcAdjInit = 0;
+
+    //开机等待时间有效校准一次，之后每小时校准一次
+    if(rtcAdjInit == 0)
+    {
+        if(INS_EOK == rtc_gnss_adjust_time())
+        {
+            rtcAdjInit = 1;
+            rtc_update();
+            ucTimeOneSecondChangeHour = RSOFT_RTC_HOUR;
+        }
+    }
+    else
+    {
+        if(ucTimeOneSecondChangeHour != RSOFT_RTC_HOUR)
+        {
+            ucTimeOneSecondChangeHour = RSOFT_RTC_HOUR;
+
+            rtc_gnss_adjust_time();
+        }
+    }
+}
+
 #endif
 

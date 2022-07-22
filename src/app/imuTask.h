@@ -3,10 +3,10 @@
 
 #undef COMMON_EXT
 #ifdef  __GOL_IMUTASK_C__
-    #define COMMON_EXT
+#define COMMON_EXT
 #else
-    #define COMMON_EXT extern
-#endif	
+#define COMMON_EXT extern
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,7 +25,7 @@ COMMON_EXT void imuTask_init(void);
 }
 #endif
 
-#endif 
+#endif
 
 
 

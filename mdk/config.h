@@ -59,7 +59,7 @@
 
 //#define	configUse_SEGGER_RTT
 #ifdef	configUse_SEGGER_RTT
-    #include "..\SEGGER_RTT_V766a\RTT\SEGGER_RTT.h"
+    #include "..\..\SEGGER_RTT_V766a\RTT\SEGGER_RTT.h"
 #endif
 
 

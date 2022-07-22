@@ -49,6 +49,8 @@ COMMON_EXT rtc_update_struct* rtc_update(void);
 
 COMMON_EXT uint8_t rtc_gnss_adjust_time(void) ;
 
+COMMON_EXT void adjust_rtc(void);
+
 #ifdef __cplusplus
 }
 #endif

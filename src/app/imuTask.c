@@ -53,7 +53,6 @@ void imu_comm5_rx(void)
 void imu_comm5_task(void* arg)
 {
     uint8_t ucTimeOneSecondChangeSecond;
-
     for( ;; )
     {
         if(pdTRUE == xSemaphoreTake( xImuComm5Semaphore, portMAX_DELAY))//pdMS_TO_TICKS(100)
@@ -80,7 +79,7 @@ void imu_comm5_task(void* arg)
 
 void imu_task_create(void)
 {
-	xTaskCreate( imu_comm5_task,
+    xTaskCreate( imu_comm5_task,
                  "imu_comm5_task",
                  configMINIMAL_STACK_SIZE,
                  ( void * ) NULL,
@@ -90,9 +89,9 @@ void imu_task_create(void)
 
 void imuTask_init(void)
 {
-	xImuComm5Semaphore = xSemaphoreCreateBinary();
+    xImuComm5Semaphore = xSemaphoreCreateBinary();
     configASSERT( xImuComm5Semaphore );
-    
+
 }
 
 #endif
