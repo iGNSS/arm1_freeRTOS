@@ -692,7 +692,7 @@ uint32_t gd32_pin_irq_enable(uint32_t pin, uint32_t enabled)
             default:
                 return INS_EINVAL;
         }
-
+		rcu_periph_clock_enable(RCU_SYSCFG);
         rcu_periph_clock_enable(index->clk);
 
         priority = pin_irq_hdr_tab[hdr_index].priority;

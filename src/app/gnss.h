@@ -125,8 +125,8 @@ typedef struct gnss_rmc_t
     char LatHemisphere;					//纬度半球
     double longitude;					//经度
     char LonHemisphere;					//经度半球
-    double rate;						//地面速率
-    double courseAngle;					//地面航向
+    double knot;						//地面速率
+    float courseAngle;					//地面航向
     uint32_t date;						//日期
     uint8_t day;						//日
     uint8_t month;						//月
@@ -247,11 +247,13 @@ typedef struct gnss_gga_t {
     uint8_t numSatellitesUsed;					//使用的卫星数
     float HDOP;									//HDOP水平精度因子
     float height;								//海拔高度
-    float height_herizon;						//地球椭球面相对大地水准面的高度
-    float differTime;							//差分时间
-    uint16_t differStationID;					//差分站ID号
+    char a_units ;								//天线高度单位（M = m）
+    float undulation;							//大地水准面差距–大地水准面和 WGS84 椭球面之间的距离。大地水准面高于椭球面为正值，否则，为负值
+    char u_units ;								//大地水准面差距单位
+    uint16_t age;  								//差分数据龄期，秒为单位
+    uint16_t stn_ID;  							//差分基站 ID
     uint32_t gps_week;							//GPS周
-    uint32_t gps_time;						//GPS周内秒
+    uint32_t gps_time;							//GPS周内秒
 } GNSS_GGA_DataTypeDef;
 
 
@@ -292,6 +294,8 @@ typedef struct GPS_Data_t
     double		vestd;
     double		vnstd;
     double		vustd;
+
+    uint16_t	gpscompms;
 } GPSDataTypeDef;
 
 
@@ -325,7 +329,8 @@ typedef struct
     uint8_t  heading_status;//主从天线 Heading 解状态 0:无效解           4：固定解 5：浮动解
     uint8_t  num_gps_star;//参与解算 GPS 卫星数
     uint8_t  num_bd_star;//参与解算 BD 卫星数
-    uint8_t  num_glo_ar;//参与解算 GLO卫星数
+    uint8_t  num_glo_star;//参与解算 GLO卫星数
+    uint8_t  num_gal_star;//Galileo 卫星数
     float    Heading;  //航向角
     float    pitch;		//俯仰角
     float    roll;  //横滚角

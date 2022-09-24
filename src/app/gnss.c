@@ -7,7 +7,7 @@
 #include "arm_math.h"
 #include "nav_task.h"
 #include "DRamAdapter.h"
-
+#include "protocol.h"
 #include "drv_usart.h"
 #include "main.h"
 
@@ -172,7 +172,9 @@ int GNSS_Cmd_Parser(char* pData)
             ||(0 == strncmp("$GPRMC", (char const *)pData, 6))
             ||(0 == strncmp("$GLRMC", (char const *)pData, 6)))
     {
-        //gnssSynFlg |= (0x1 << 0);
+#ifdef configUse_debug
+		gnssSynFlg |= (0x1 << 0);
+#endif
         gCmdTypeIndex = 1;
     }
     else if((0 == strncmp("$GNGGA", (char const *)pData, 6))
@@ -180,7 +182,9 @@ int GNSS_Cmd_Parser(char* pData)
             ||(0 == strncmp("$GLGGA", (char const *)pData, 6))
             ||(0 == strncmp("$BDGGA", (char const *)pData, 6)))
     {
-        //gnssSynFlg |= (0x1 << 1);
+#ifdef configUse_debug
+        gnssSynFlg |= (0x1 << 1);
+#endif
         gCmdTypeIndex = 2;
     }
     else if((0 == strncmp("$GNVTG", (char const *)pData, 6))
@@ -197,7 +201,9 @@ int GNSS_Cmd_Parser(char* pData)
     }
     else if(0 == strncmp("#HEADINGA", (char const *)pData, 9))
     {
-        //gnssSynFlg |= (0x1 << 0);
+#ifdef configUse_debug
+        gnssSynFlg |= (0x1 << 2);
+#endif
         gCmdTypeIndex = 5;
     }
     else if(0 == strncmp("#BESTPOSA", (char const *)pData, 9))
@@ -218,7 +224,7 @@ int GNSS_Cmd_Parser(char* pData)
     }
     else if(0 == strncmp("#AGRICA", (char const *)pData, 7))
     {
-        gnssSynFlg |= (0x1 << 0);
+        gnssSynFlg |= (0x1 << 3);
         gCmdTypeIndex = 9;
     }
 
@@ -338,7 +344,7 @@ int gnss_RMC_Buff_Parser(char* pData)
 
     case 7:			//字段7		地面速率
         //dtoc((double*)&hGPSRmcData.rate, (uint8_t*)pData, 2);
-        hGPSRmcData.rate = atof(pData);
+        hGPSRmcData.knot = atof(pData);
         //gCmdIndex = 8;
         break;
 
@@ -455,29 +461,31 @@ int gnss_GGA_Buff_Parser(char* pData)
 
     case 10:			//字段10	地球椭球面相对大地水准面的高度
         //dtoc((double*)&hGPSGgaData.height_herizon, (uint8_t*)pData, 2);
-        hGPSGgaData.height_herizon = atof(pData);
+        hGPSGgaData.a_units = *pData;
         //gCmdIndex = 11;
         break;
 
     case 11:			//字段11	差分时间
         //dtoc((double*)&hGPSGgaData.differTime, (uint8_t*)pData, 2);
-        hGPSGgaData.differTime = atof(pData);
-        //gCmdIndex = 12;
+        hGPSGgaData.undulation = atof(pData);
         break;
 
     case 12:			//字段12	差分站ID号
-        hGPSGgaData.differStationID = atoi(pData);
-        //gCmdIndex = 13;
+        hGPSGgaData.u_units = *pData;
         break;
 
-    case 13:			//字段13	校验值
+    case 13:			//字段12	差分站ID号
+        hGPSGgaData.age = atoi(pData);
+        break;
+    case 14:			//字段12	差分站ID号
+        hGPSGgaData.stn_ID = atoi(pData);
         break;
 
     default:
         break;
     }
 
-    if(gCmdIndex == 13)
+    if(gCmdIndex == 14)
     {
         return 1;
     }
@@ -1281,7 +1289,7 @@ int gnss_AGRIC_Buff_Parser(char * pData)
         break;
 
     case 21:					//字段13				参与解算 GLO 卫星数
-        hGPSAgricData.num_glo_ar = atoi(pData);
+        hGPSAgricData.num_glo_star = atoi(pData);
 
         break;
 
@@ -1395,12 +1403,19 @@ int gnss_AGRIC_Buff_Parser(char * pData)
         //hGPSAgricData.GPS_Sec /= 1000;
         //gCmdIndex++;
         break;
-
+    case 57:
+    case 58:
+    case 59:
+    case 60:
+    case 61:
+        break;
+    case 62:					//Galileo 卫星数
+        hGPSAgricData.num_gal_star = atoi(pData);
     default:
         break;
     }
 
-    if(gCmdIndex == 56)
+    if(gCmdIndex == 62)
         return 1;
     else
         return 0;
@@ -1498,42 +1513,6 @@ GPS_AGRIC_TypeDef*  gnss_get_algorithm_dataPtr(void)
 }
 
 void gnss_Fetch_Data(void)
-#if 0
-{
-    hGPSData.timestamp = hGPSZdaData.timestamp;
-    hGPSData.StarNum = hGPSHeadingData.numSatellitesTracked;
-    hGPSData.ResolveState = hGPSHeadingData.calcState;
-    hGPSData.PositioningState = hGPSRmcData.valid;
-    hGPSData.PositionType = hGPSHeadingData.posType;
-    hGPSData.LonHemisphere = hGPSRmcData.LonHemisphere;
-    hGPSData.Lon = hGPSRmcData.longitude;
-    hGPSData.LatHemisphere = hGPSRmcData.LatHemisphere;
-    hGPSData.Lat = hGPSRmcData.latitude;
-    hGPSData.Altitude = hGPSBestPosData.height;
-    hGPSData.Heading = hGPSHeadingData.courseAngle;
-    hGPSData.Pitch = hGPSHeadingData.pitchAngle;
-    hGPSData.LonStd = hGPSBestPosData.longitudeStandardDeviation;
-    hGPSData.LatStd = hGPSBestPosData.latitudeStandardDeviation;
-    hGPSData.AltitudeStd = hGPSBestPosData.heightStandardDeviation;
-    hGPSData.HeadingStd = hGPSHeadingData.courseStandardDeviation;
-    hGPSData.PitchStd = hGPSHeadingData.pitchStandardDeviation;
-    hGPSData.HDOP = hGPSGgaData.HDOP;
-    hGPSData.GroundSpeed = hGPSRmcData.rate;
-
-    hGPSData.gpsweek = hGPSBestPosData.header.gpsWn;
-    hGPSData.gpssecond = hGPSBestPosData.header.gpsMs;
-    hGPSData.ve = hGPSAgricData.vE;
-    hGPSData.vn = hGPSAgricData.vN;
-    hGPSData.vu = hGPSAgricData.vZ;
-    hGPSData.rtkStatus = hGPSAgricData.rtk_status;
-    hGPSData.LatStd = hGPSAgricData.sigma_lat;
-    hGPSData.LonStd = hGPSAgricData.sigma_lon;
-    hGPSData.AltitudeStd = hGPSAgricData.sigma_alt;
-    hGPSData.vestd = hGPSAgricData.sigma_ve;
-    hGPSData.vnstd = hGPSAgricData.sigma_vn;
-    hGPSData.vustd = hGPSAgricData.sigma_vz;
-}
-#else
 {
     hGPSData.timestamp = hGPSRmcData.timestamp;
     //hGPSData.StarNum = hGPSHeadingData.numSatellitesUsed;
@@ -1575,7 +1554,8 @@ void gnss_Fetch_Data(void)
     hGPSData.gpssecond = hGPSAgricData.header.gpsMs;
     hGPSData.ve = hGPSAgricData.vE;
     hGPSData.vn = hGPSAgricData.vN;
-    hGPSData.vu = hGPSAgricData.vZ;
+    //hGPSData.vu = hGPSAgricData.vZ;
+	hGPSData.vu = hGPSRmcData.knot*0.51444f;
     hGPSData.rtkStatus = hGPSAgricData.rtk_status;
     hGPSData.LatStd = hGPSAgricData.sigma_lat;
     hGPSData.LonStd = hGPSAgricData.sigma_lon;
@@ -1585,7 +1565,7 @@ void gnss_Fetch_Data(void)
     hGPSData.vustd = hGPSAgricData.sigma_vz;
     hGPSData.supportposvelstd = 1;
 }
-#endif
+
 //void gnss_parse_unicore(uint8_t* pData, uint16_t len)
 //{
 //    uint8_t valid = 0;
@@ -1667,21 +1647,61 @@ uint8_t gnss_parse(uint8_t* pData, uint16_t dataLen)
 
     return ret;
 }
+#include "drv_rtc.h"
+#include "FmcAdapter.h"
 
 void gnss_fill_data(uint8_t* pData, uint16_t dataLen)
 {
 
     if(INS_EOK == gnss_parse(pData, dataLen))
     {
-        //gnss_fill_rs422(&rs422_frame);
+#ifdef configUse_debug
+        rtc_update_struct* rtc;
+        extern navi_test_t	navi_test_info;
+        if(0x0f == gnssSynFlg)
+        {
+            gnssSynFlg = 0;
+            rtc = rtc_update();
+            navi_test_info.timestamp = rtc->gpsTime;
+            //navi_test_info.timestamp = hGPSGgaData.timestamp;
+            navi_test_info.gps_valid = 1;
+            navi_test_info.gpsWeek = hGPSAgricData.header.gpsWn;
+            navi_test_info.gpsSec  = hGPSAgricData.header.gpsMs;
+            navi_test_info.starNum = hGPSGgaData.numSatellitesUsed;
+            navi_test_info.rtkStatus = hGPSAgricData.rtk_status;
+            navi_test_info.lat = hGPSAgricData.lat;
+            navi_test_info.lon = hGPSAgricData.lon;
+            navi_test_info.alt = hGPSAgricData.alt;
+            navi_test_info.vu = hGPSRmcData.knot*0.51444f;
+			navi_test_info.track = hGPSRmcData.courseAngle;
+            navi_test_info.heading = hGPSHeadingData.courseAngle;
+            navi_test_info.pitch = hGPSHeadingData.pitchAngle;
+            navi_test_info.lat_std = hGPSAgricData.sigma_lat;
+            navi_test_info.lon_std = hGPSAgricData.sigma_lon;
+            navi_test_info.alt_std = hGPSAgricData.sigma_alt;
+            navi_test_info.hdgstddev = hGPSHeadingData.courseStandardDeviation;
+            navi_test_info.ptchstddev = hGPSHeadingData.pitchStandardDeviation;
+            navi_test_info.hdop = hGPSGgaData.HDOP;
+            gnss_Fetch_Data();
+            protocol_fillGipotData(&hGPSAgricData, &hGPSHeadingData);
+            protocol_fillGrimuData(&hGPSAgricData);
+            protocol_fillRawimuData(&hGPSAgricData);
+            gnss_notify();
+        }
+#else
         if(0x01 == gnssSynFlg)
         {
             gnssSynFlg = 0;
+            //DRam_Read(0, &hGPSData.gpscompms, 2);
+            //hGPSData.gpscompms = FMC_ReadWord(SPACE_COM, 0x160 >> 1);
+            //hGPSData.gpscompms *= 5;
             gnss_Fetch_Data();
+            protocol_fillGipotData(&hGPSAgricData, &hGPSHeadingData);
+            protocol_fillGrimuData(&hGPSAgricData);
+            protocol_fillRawimuData(&hGPSAgricData);
             gnss_notify();
-
         }
-
+#endif
     }
 
 }

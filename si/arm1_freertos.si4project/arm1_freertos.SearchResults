@@ -1,0 +1,4 @@
+---- vPortSVCHandler Matches (3 in 2 files) ----
+FreeRTOSConfig.h (FreeRTOS) line 133 : #define vPortSVCHandler SVC_Handler
+port.c (FreeRTOS\portable\RVDS\ARM_CM4F) line 129 : void vPortSVCHandler( void );
+port.c (FreeRTOS\portable\RVDS\ARM_CM4F) line 240 : __asm void vPortSVCHandler( void )

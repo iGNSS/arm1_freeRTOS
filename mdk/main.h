@@ -38,10 +38,6 @@ OF SUCH DAMAGE.
 #ifndef __MAIN_H
 #define __MAIN_H
 
-#define TASK_GNSS_COMM2_BIT ( 1 << 0 )
-#define TASK_GNSS_COMM3_BIT ( 1 << 1 )
-#define TASK_IMU_BIT 		( 1 << 2 )
-#define ALL_SYNC_BITS 		( TASK_GNSS_COMM2_BIT | TASK_GNSS_COMM3_BIT | TASK_IMU_BIT )
 
 /* led spark function */
 void syn_arm2(void);

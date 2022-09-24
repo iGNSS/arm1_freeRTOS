@@ -39,7 +39,7 @@ OF SUCH DAMAGE.
 #include "main.h"
 #include "systick.h"
 #include "clock.h"
-
+#include "config.h"
 /*!
     \brief    this function handles NMI exception
     \param[in]  none

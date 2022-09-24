@@ -1,7 +1,7 @@
 /*!
     \file    fmc_operation.c
     \brief   flash program, erase
-    
+
     \version 2016-08-15, V1.0.0, firmware for GD32F4xx
     \version 2018-12-12, V2.0.0, firmware for GD32F4xx
     \version 2020-09-30, V2.1.0, firmware for GD32F4xx
@@ -11,27 +11,27 @@
 /*
     Copyright (c) 2022, GigaDevice Semiconductor Inc.
 
-    Redistribution and use in source and binary forms, with or without modification, 
+    Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
-    1. Redistributions of source code must retain the above copyright notice, this 
+    1. Redistributions of source code must retain the above copyright notice, this
        list of conditions and the following disclaimer.
-    2. Redistributions in binary form must reproduce the above copyright notice, 
-       this list of conditions and the following disclaimer in the documentation 
+    2. Redistributions in binary form must reproduce the above copyright notice,
+       this list of conditions and the following disclaimer in the documentation
        and/or other materials provided with the distribution.
-    3. Neither the name of the copyright holder nor the names of its contributors 
-       may be used to endorse or promote products derived from this software without 
+    3. Neither the name of the copyright holder nor the names of its contributors
+       may be used to endorse or promote products derived from this software without
        specific prior written permission.
 
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, 
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT 
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR 
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY 
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
 
@@ -87,7 +87,7 @@ fmc_sector_info_struct fmc_sector_info_get(uint32_t addr)
                 sector_info.sector_size = SIZE_64KB;
                 sector_info.sector_start_addr = 0x08110000U;
                 sector_info.sector_end_addr = 0x0811FFFFU;
-            } else if (64U > temp){
+            } else if (64U > temp) {
                 temp = (addr - FMC_BANK1_START_ADDRESS) / SIZE_128KB;
                 sector_info.sector_name = (uint32_t)(temp + 16);
                 sector_info.sector_num = CTL_SN(temp + 20);
@@ -122,13 +122,13 @@ fmc_sector_info_struct fmc_sector_info_get(uint32_t addr)
 */
 uint32_t sector_name_to_number(uint32_t sector_name)
 {
-    if(11 >= sector_name){
+    if(11 >= sector_name) {
         return CTL_SN(sector_name);
-    }else if(23 >= sector_name){
+    } else if(23 >= sector_name) {
         return CTL_SN(sector_name + 4);
-    }else if(27 >= sector_name){
+    } else if(27 >= sector_name) {
         return CTL_SN(sector_name - 12);
-    }else{
+    } else {
         while(1);
     }
 }
@@ -142,25 +142,23 @@ uint32_t sector_name_to_number(uint32_t sector_name)
 void fmc_erase_sector_by_address(uint32_t address)
 {
     fmc_sector_info_struct sector_info;
-    
     /* get information about the sector in which the specified address is located */
     sector_info = fmc_sector_info_get(address);
-    if(FMC_WRONG_SECTOR_NAME == sector_info.sector_name){
-        
+    if(FMC_WRONG_SECTOR_NAME == sector_info.sector_name) {
+
         while(1);
-    }else{
-        
+    } else {
+
         /* unlock the flash program erase controller */
-        fmc_unlock(); 
+        fmc_unlock();
         /* clear pending flags */
         fmc_flag_clear(FMC_FLAG_END | FMC_FLAG_OPERR | FMC_FLAG_WPERR | FMC_FLAG_PGMERR | FMC_FLAG_PGSERR);
         /* wait the erase operation complete*/
-        if(FMC_READY != fmc_sector_erase(sector_info.sector_num)){
+        if(FMC_READY != fmc_sector_erase(sector_info.sector_num)) {
             while(1);
         }
         /* lock the flash program erase controller */
         fmc_lock();
-        
     }
 }
 
@@ -174,38 +172,37 @@ void fmc_erase_sector_by_address(uint32_t address)
 */
 void fmc_write_32bit_data(uint32_t address, uint16_t length, int32_t* data_32)
 {
-    fmc_sector_info_struct start_sector_info;
-    fmc_sector_info_struct end_sector_info;
-    uint32_t sector_num,i;
-    
-    printf("\r\nFMC word programe operation:\n");
+//    fmc_sector_info_struct start_sector_info;
+//    fmc_sector_info_struct end_sector_info;
+//    uint32_t sector_num;
+		uint32_t i;
     /* unlock the flash program erase controller */
     fmc_unlock();
     /* clear pending flags */
     fmc_flag_clear(FMC_FLAG_END | FMC_FLAG_OPERR | FMC_FLAG_WPERR | FMC_FLAG_PGMERR | FMC_FLAG_PGSERR);
+#if 0
     /* get the information of the start and end sectors */
     start_sector_info = fmc_sector_info_get(address);
     end_sector_info = fmc_sector_info_get(address + 4*length);
     /* erase sector */
-    for(i = start_sector_info.sector_name; i <= end_sector_info.sector_name; i++){
+    for(i = start_sector_info.sector_name; i <= end_sector_info.sector_name; i++) {
         sector_num = sector_name_to_number(i);
-        if(FMC_READY != fmc_sector_erase(sector_num)){
+        if(FMC_READY != fmc_sector_erase(sector_num)) {
             while(1);
         }
     }
-
+#endif
     /* write data_32 to the corresponding address */
-    for(i=0; i<length; i++){
-        if(FMC_READY == fmc_word_program(address, data_32[i])){
+    for(i=0; i<length; i++) {
+        if(FMC_READY == fmc_word_program(address, data_32[i])) {
             address = address + 4;
-        }else{ 
+        } else {
             while(1);
         }
     }
     /* lock the flash program erase controller */
     fmc_lock();
-    printf("\r\nWrite complete!\n");
-    printf("\r\n");
+
 }
 
 /*!
@@ -219,15 +216,11 @@ void fmc_write_32bit_data(uint32_t address, uint16_t length, int32_t* data_32)
 void fmc_read_32bit_data(uint32_t address, uint16_t length, int32_t* data_32)
 {
     uint8_t i;
-    printf("\r\nRead data from 0x%08X\n", address);
-    printf("\r\n");
-    for(i=0; i<length; i++){
+
+    for(i=0; i<length; i++) {
         data_32[i] = *(__IO int32_t*)address;
-        printf("0x%08X  ", data_32[i]);
         address=address + 4;
     }
-    printf("\r\nRead end\n");
-    printf("\r\n");
 }
 
 /*!
@@ -240,38 +233,38 @@ void fmc_read_32bit_data(uint32_t address, uint16_t length, int32_t* data_32)
 */
 void fmc_write_16bit_data(uint32_t address, uint16_t length, int16_t* data_16)
 {
-    fmc_sector_info_struct start_sector_info;
-    fmc_sector_info_struct end_sector_info;
-    uint32_t sector_num,i;
-    
-    printf("\r\nFMC half_word program operation:\n");
+//    fmc_sector_info_struct start_sector_info;
+//    fmc_sector_info_struct end_sector_info;
+//    uint32_t sector_num;
+		uint32_t i;
     /* unlock the flash program erase controller */
     fmc_unlock();
     /* clear pending flags */
     fmc_flag_clear(FMC_FLAG_END | FMC_FLAG_OPERR | FMC_FLAG_WPERR | FMC_FLAG_PGMERR | FMC_FLAG_PGSERR);
-    /* get the information of the start and end sectors */
-    start_sector_info = fmc_sector_info_get(address);
-    end_sector_info = fmc_sector_info_get(address + 2*length);
-    /* erase sector */
-    for(i = start_sector_info.sector_name; i <= end_sector_info.sector_name; i++){
-        sector_num = sector_name_to_number(i);
-        if(FMC_READY != fmc_sector_erase(sector_num)){
-            while(1);
-        }
-    }
+#if 0
+		/* get the information of the start and end sectors */
+		start_sector_info = fmc_sector_info_get(address);
+		end_sector_info = fmc_sector_info_get(address + 2*length);
+		/* erase sector */
+		for(i = start_sector_info.sector_name; i <= end_sector_info.sector_name; i++) {
+			sector_num = sector_name_to_number(i);
+			if(FMC_READY != fmc_sector_erase(sector_num)) {
+				while(1);
+			}
+		}
+#endif
 
     /* write data_16 to the corresponding address */
-    for(i=0; i<length; i++){
-        if(FMC_READY == fmc_halfword_program(address, data_16[i])){
+    for(i=0; i<length; i++) {
+        if(FMC_READY == fmc_halfword_program(address, data_16[i])) {
             address = address + 2;
-        }else{ 
+        } else {
             while(1);
         }
     }
     /* lock the flash program erase controller */
     fmc_lock();
-    printf("\r\nWrite complete!\n");
-    printf("\r\n");
+
 }
 
 /*!
@@ -285,15 +278,12 @@ void fmc_write_16bit_data(uint32_t address, uint16_t length, int16_t* data_16)
 void fmc_read_16bit_data(uint32_t address, uint16_t length, int16_t* data_16)
 {
     uint8_t i;
-    printf("\r\nRead data from 0x%04X\n", address);
-    printf("\r\n");
-    for(i=0; i<length; i++){
+
+    for(i=0; i<length; i++) {
         data_16[i] = *(__IO int16_t*)address;
-        printf("0x%04X  ", data_16[i]);
         address = address + 2;
     }
-    printf("\r\nRead end\n");
-    printf("\r\n");
+
 }
 
 /*!
@@ -306,36 +296,38 @@ void fmc_read_16bit_data(uint32_t address, uint16_t length, int16_t* data_16)
 */
 void fmc_write_8bit_data(uint32_t address, uint16_t length, int8_t* data_8)
 {
-    fmc_sector_info_struct start_sector_info;
-    fmc_sector_info_struct end_sector_info;
-    uint32_t sector_num,i;
-    
+//    fmc_sector_info_struct start_sector_info;
+//    fmc_sector_info_struct end_sector_info;
+//    uint32_t sector_num;
+		uint32_t i;
+
     /* unlock the flash program erase controller */
     fmc_unlock();
     /* clear pending flags */
     fmc_flag_clear(FMC_FLAG_END | FMC_FLAG_OPERR | FMC_FLAG_WPERR | FMC_FLAG_PGMERR | FMC_FLAG_PGSERR);
-    /* get the information of the start and end sectors */
-    start_sector_info = fmc_sector_info_get(address);
-    end_sector_info = fmc_sector_info_get(address + 2*length);
-    /* erase sector */
-    for(i = start_sector_info.sector_name; i <= end_sector_info.sector_name; i++){
-        sector_num = sector_name_to_number(i);
-        if(FMC_READY != fmc_sector_erase(sector_num)){
-            while(1);
-        }
-    }
-
+#if 0
+		/* get the information of the start and end sectors */
+		start_sector_info = fmc_sector_info_get(address);
+		end_sector_info = fmc_sector_info_get(address + 2*length);
+		/* erase sector */
+		for(i = start_sector_info.sector_name; i <= end_sector_info.sector_name; i++) {
+			sector_num = sector_name_to_number(i);
+			if(FMC_READY != fmc_sector_erase(sector_num)) {
+				while(1);
+			}
+		}
+#endif
     /* write data_8 to the corresponding address */
-    for(i=0; i<length; i++){
-        if(FMC_READY == fmc_byte_program(address, data_8[i])){
+    for(i=0; i<length; i++) {
+        if(FMC_READY == fmc_byte_program(address, data_8[i])) {
             address++;
-        }else{
+        } else {
             while(1);
         }
     }
     /* lock the flash program erase controller */
     fmc_lock();
-   
+
 }
 
 /*!
@@ -349,11 +341,12 @@ void fmc_write_8bit_data(uint32_t address, uint16_t length, int8_t* data_8)
 void fmc_read_8bit_data(uint32_t address, uint16_t length, int8_t* data_8)
 {
     uint8_t i;
-    
-    for(i=0; i<length; i++){
+
+    for(i=0; i<length; i++) {
         data_8[i] = *(__IO int8_t*)address;
         address++;
     }
+
 }
 
 #define ERASE_ADDRESS               ((uint32_t)0x08104000)
@@ -365,12 +358,12 @@ int32_t data_32_1[10] = {0x5555AAAA,0x5555AAAA,0x5555AAAA,0x5555AAAA,0x5555AAAA,
 int32_t data_32_2[10];
 int16_t data_16_1[10] = {0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,0x44BB,};
 int16_t data_16_2[10];
-int8_t data_8_1[10] = {0xff,0x3D,0xff,0x3D,0x3D,0xff,0x3D,0x3D,0x3D,0x3D};
+int8_t data_8_1[10] = {0x3D,0x3D,0x3D,0x3D,0x3D,0x3D,0x3D,0x3D,0x3D,0x3D};
 int8_t data_8_2[10];
 
 void fmc_selftest(void)
 {
-    
+
     /* erases the sector of a given sector number */
     fmc_erase_sector_by_address(ERASE_ADDRESS);
 
@@ -383,7 +376,7 @@ void fmc_selftest(void)
     fmc_write_16bit_data(WRITE_ADDRESS_HALF_WORD, 10, data_16_1);
     /* read 16 bit length data from a given address */
     fmc_read_16bit_data(WRITE_ADDRESS_HALF_WORD, 10, data_16_2);
-    
+
     /* write 8 bit length data to a given address */
     fmc_write_8bit_data(WRITE_ADDRESS_BYTE, 10, data_8_1);
     /* read 8 bit length data from a given address */

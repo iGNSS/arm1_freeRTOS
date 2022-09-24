@@ -10,9 +10,11 @@ extern "C" {
 #include "gd32f4xx.h"
 
   
-  
+#define TIM_BASE_PERIOD	1000
+
 void gd32_timer_init(void);  
-  
+void CompensateTimeTicksClr(void);
+uint32_t CompensateTimeTicksGet(void);  
   
   
 #ifdef __cplusplus

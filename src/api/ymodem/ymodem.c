@@ -2,10 +2,26 @@
 #include "string.h"
 #include "stdlib.h"
 #include "clock.h"
-#include "ymodem.h"
-#include "drv_usart.h"
+#include "systick.h"
 
-static const uint16_t ccitt_table[256] = {
+#include "ymodem.h"
+#include "fmc_operation.h"
+#include "drv_usart.h"
+#include "uartadapter.h"
+
+/* Kernel includes. */
+//#include "FreeRTOS.h"
+#include "task.h"
+#include "timers.h"
+//#include "semphr.h"
+#include "event_groups.h"
+
+SemaphoreHandle_t xYmodemSemaphore   = NULL;
+
+static uint32_t wr_pointer = 0;
+
+static const uint16_t ccitt_table[256] =
+{
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50A5, 0x60C6, 0x70E7,
     0x8108, 0x9129, 0xA14A, 0xB16B, 0xC18C, 0xD1AD, 0xE1CE, 0xF1EF,
     0x1231, 0x0210, 0x3273, 0x2252, 0x52B5, 0x4294, 0x72F7, 0x62D6,
@@ -39,7 +55,7 @@ static const uint16_t ccitt_table[256] = {
     0xEF1F, 0xFF3E, 0xCF5D, 0xDF7C, 0xAF9B, 0xBFBA, 0x8FD9, 0x9FF8,
     0x6E17, 0x7E36, 0x4E55, 0x5E74, 0x2E93, 0x3EB2, 0x0ED1, 0x1EF0
 };
-uint16_t CRC16(unsigned char *q, int len)
+static uint16_t CRC16(unsigned char *q, int len)
 {
     uint16_t crc = 0;
 
@@ -47,45 +63,51 @@ uint16_t CRC16(unsigned char *q, int len)
         crc = (crc << 8) ^ ccitt_table[((crc >> 8) ^ *q++) & 0xff];
     return crc;
 }
+static struct rym_ctx *_rym_the_ctx;
+
+ins_size_t ins_device_read(void       *buffer, ins_size_t   size)
+{
+        //return gd32_usart_read(buffer, size); 
+        return Uart_RecvMsg(UART_RXPORT_COMPLEX_8, size, buffer);
+}
+
+ins_size_t ins_device_write(void       *buffer, ins_size_t   size)
+{
+        //return gd32_usart_write(buffer, size); 
+        Uart_SendMsg(UART_TXPORT_COMPLEX_8, 0, size, buffer);
+        return 1;
+}
+
 
 // we could only use global varible because we could not use
 // rt_device_t->user_data(it is used by the serial driver)...
 static struct rym_ctx *_rym_the_ctx;
 
-ins_size_t ins_device_read(void       *buffer, ins_size_t   size)
-{
-        return gd32_usart_read(buffer, size); 
-}
-
-ins_size_t ins_device_write(void       *buffer, ins_size_t   size)
-{
-        return gd32_usart_write(buffer, size); 
-}
+//static ins_err_t _rym_rx_ind(ins_size_t size)
+//{
+//    return xSemaphoreGive(_rym_the_ctx->sem);
+//}
 
 /* SOH/STX + seq + payload + crc */
 #define _RYM_SOH_PKG_SZ (1+2+128+2)
 #define _RYM_STX_PKG_SZ (1+2+1024+2)
+#define _RYM_PKG_SZ 	_RYM_SOH_PKG_SZ
 
 static enum rym_code _rym_read_code(
         struct rym_ctx *ctx,
         ins_tick_t timeout)
 {
-	ins_tick_t tick_start;
-	
     /* Fast path */
     if (ins_device_read(ctx->buf, 1) == 1)
         return (enum rym_code)(*ctx->buf);
-        
-	tick_start = ins_tick_get();
+
     /* Slow path */
     do {
         ins_size_t rsz;
 
         /* No data yet, wait for one */
-        if (ins_tick_timeout(tick_start, ins_tick_from_millisecond(timeout)))
-        {
+        if (xSemaphoreTake(ctx->sem, timeout) != INS_EOK)
             return RYM_CODE_NONE;
-        }
 
         /* Try to read one */
         rsz = ins_device_read(ctx->buf, 1);
@@ -100,20 +122,15 @@ static ins_size_t _rym_read_data(
         ins_size_t len)
 {
     /* we should already have had the code */
-    uint8_t *buf = ctx->buf + 1;
+    uint8_t *buf = ctx->buf;
     ins_size_t readlen = 0;
-	ins_tick_t tick_start = ins_tick_get();
+
     do
     {
-    	/* No data yet, wait for one */
-        if (ins_tick_timeout(tick_start, ins_tick_from_millisecond(RYM_WAIT_CHR_TICK)))
-        {
-            break;
-        }
         readlen += ins_device_read(buf+readlen, len-readlen);
         if (readlen >= len)
             return readlen;
-    } while (1);
+    } while (xSemaphoreTake(ctx->sem, RYM_WAIT_CHR_TICK) == INS_EOK);
 
     return readlen;
 }
@@ -128,33 +145,39 @@ static ins_err_t _rym_do_handshake(
         struct rym_ctx *ctx,
         int tm_sec)
 {
-    enum rym_code code;
-    ins_size_t i;
+//    enum rym_code code;
+    ins_size_t i,len;
     uint16_t recv_crc, cal_crc;
-
+	char* ch;
+	
     ctx->stage = RYM_STAGE_ESTABLISHING;
     /* send C every second, so the sender could know we are waiting for it. */
     for (i = 0; i < tm_sec; i++)
     {
         _rym_putchar(ctx, RYM_CODE_C);
-        code = _rym_read_code(ctx,
-                RYM_CHD_INTV_TICK);
-        if (code == RYM_CODE_SOH)
+        len = _rym_read_data(ctx, _RYM_PKG_SZ);
+        if (len == (_RYM_PKG_SZ))
             break;
     }
     if (i == tm_sec)
         return -RYM_ERR_TMO;
 
-    i = _rym_read_data(ctx, _RYM_SOH_PKG_SZ-1);
-    if (i != (_RYM_SOH_PKG_SZ-1))
-        return -RYM_ERR_DSZ;
-
+    ch = strstr((char*)&ctx->buf[3], ".bin");
+	if(NULL != ch)
+	{
+		ctx->filesize = strtod(ch+5, NULL);
+	}
     /* sanity check */
-    if (ctx->buf[1] != 0 || ctx->buf[2] != 0xFF)
-        return -RYM_ERR_SEQ;
+#if _RYM_PKG_SZ == _RYM_STX_PKG_SZ    
+		if (ctx->buf[0] != RYM_CODE_STX || ctx->buf[1] != 0 || ctx->buf[2] != 0xFF)
+			return -RYM_ERR_SEQ;
+#else
+		if (ctx->buf[0] != RYM_CODE_SOH || ctx->buf[1] != 0 || ctx->buf[2] != 0xFF)
+			return -RYM_ERR_SEQ;
+#endif
 
-    recv_crc = (uint16_t)(*(ctx->buf+_RYM_SOH_PKG_SZ-2) << 8) | *(ctx->buf+_RYM_SOH_PKG_SZ-1);
-    cal_crc = CRC16(ctx->buf+3, _RYM_SOH_PKG_SZ-5);
+    recv_crc = (uint16_t)(*(ctx->buf+_RYM_PKG_SZ-2) << 8) | *(ctx->buf+_RYM_PKG_SZ-1);
+    cal_crc = CRC16(ctx->buf+3, _RYM_PKG_SZ-5);
     if (recv_crc != cal_crc)
         return -RYM_ERR_CRC;
 
@@ -170,13 +193,20 @@ static ins_err_t _rym_trans_data(
         ins_size_t data_sz,
         enum rym_code *code)
 {
-    const ins_size_t tsz = 2+data_sz+2;
+    ins_size_t tsz = 1+2+data_sz+2;
     uint16_t recv_crc;
 
     /* seq + data + crc */
     ins_size_t i = _rym_read_data(ctx, tsz);
-    if (i != tsz)
-        return -RYM_ERR_DSZ;
+    if(ctx->buf[0] == RYM_CODE_EOT)
+    	return INS_EOK;
+    if(ctx->buf[0] == RYM_CODE_SOH)
+    {
+    	tsz = _RYM_SOH_PKG_SZ;
+    	data_sz = 128;
+	}
+	if (i != tsz)
+	    return -RYM_ERR_DSZ;
 
     if ((ctx->buf[1] + ctx->buf[2]) != 0xFF)
     {
@@ -196,13 +226,13 @@ static ins_err_t _rym_trans_data(
     ctx->stage = RYM_STAGE_TRANSMITTING;
 
     /* sanity check */
-    recv_crc = (uint16_t)(*(ctx->buf+tsz-1) << 8) | *(ctx->buf+tsz);
+    recv_crc = (uint16_t)(*(ctx->buf+tsz-2) << 8) | *(ctx->buf+tsz-1);
     if (recv_crc != CRC16(ctx->buf+3, data_sz))
         return -RYM_ERR_CRC;
 
     /* congratulations, check passed. */
     if (ctx->on_data)
-        *code = ctx->on_data(ctx, ctx->buf+3, data_sz);
+        *code = ctx->on_data(ctx, ctx->buf+2, data_sz);
     else
         *code = RYM_CODE_ACK;
     return INS_EOK;
@@ -210,35 +240,30 @@ static ins_err_t _rym_trans_data(
 
 static ins_err_t _rym_do_trans(struct rym_ctx *ctx)
 {
+	fmc_erase_sector_by_address(USER_DAPSAVE_PAGE_ADDR);
+	
     _rym_putchar(ctx, RYM_CODE_ACK);
     _rym_putchar(ctx, RYM_CODE_C);
     ctx->stage = RYM_STAGE_ESTABLISHED;
+    ins_err_t err;
+    enum rym_code code;
+    ins_size_t i;
+	#if _RYM_PKG_SZ == _RYM_STX_PKG_SZ 
+	ins_size_t data_sz = 1024;
+	#else
+	ins_size_t data_sz = 128;
+	#endif
 
     while (1)
     {
-        ins_err_t err;
-        enum rym_code code;
-        ins_size_t data_sz, i;
-
-        code = _rym_read_code(ctx,
-                RYM_WAIT_PKG_TICK);
-        switch (code)
-        {
-        case RYM_CODE_SOH:
-            data_sz = 128;
-            break;
-        case RYM_CODE_STX:
-            data_sz = 1024;
-            break;
-        case RYM_CODE_EOT:
-            return INS_EOK;
-        default:
-            return -RYM_ERR_CODE;
-        };
 
         err = _rym_trans_data(ctx, data_sz, &code);
         if (err != INS_EOK)
             return err;
+        if(ctx->buf[0] == RYM_CODE_EOT)
+        {
+            	return INS_EOK;
+        }
         switch (code)
         {
         case RYM_CODE_CAN:
@@ -254,8 +279,15 @@ static ins_err_t _rym_do_trans(struct rym_ctx *ctx)
             // wrong code
             break;
         };
+		if(ctx->buf[0] == RYM_CODE_SOH)
+        {
+        	data_sz = 128;
+        }
+        fmc_write_8bit_data(USER_DAPSAVE_PAGE_ADDR+wr_pointer, data_sz, (int8_t*)(ctx->buf+3));
+        wr_pointer += data_sz;
     }
 }
+
 
 static ins_err_t _rym_do_fin(struct rym_ctx *ctx)
 {
@@ -277,14 +309,12 @@ static ins_err_t _rym_do_fin(struct rym_ctx *ctx)
     _rym_putchar(ctx, RYM_CODE_ACK);
     _rym_putchar(ctx, RYM_CODE_C);
 
-    code = _rym_read_code(ctx, RYM_WAIT_PKG_TICK);
-    if (code != RYM_CODE_SOH)
-        return -RYM_ERR_CODE;
-
-    i = _rym_read_data(ctx, _RYM_SOH_PKG_SZ-1);
-    if (i != (_RYM_SOH_PKG_SZ-1))
+    i = _rym_read_data(ctx, _RYM_SOH_PKG_SZ);
+    if (i != _RYM_SOH_PKG_SZ)
         return -RYM_ERR_DSZ;
-
+        
+	if (ctx->buf[0] != RYM_CODE_SOH)
+        return -RYM_ERR_CODE;
     /* sanity check
      *
      * TODO: multiple files transmission
@@ -305,6 +335,7 @@ static ins_err_t _rym_do_fin(struct rym_ctx *ctx)
     return INS_EOK;
 }
 
+
 static ins_err_t _rym_do_recv(
         struct rym_ctx *ctx,
         int handshake_timeout)
@@ -313,7 +344,11 @@ static ins_err_t _rym_do_recv(
 
     ctx->stage = RYM_STAGE_NONE;
 
-    ctx->buf = malloc(_RYM_STX_PKG_SZ);
+	ctx->sem = xSemaphoreCreateBinary();
+    if (ctx->sem == NULL)
+        return -INS_ENOMEM;
+        
+    ctx->buf = pvPortMalloc(_RYM_STX_PKG_SZ);
     if (ctx->buf == NULL)
         return -INS_ENOMEM;
 
@@ -346,6 +381,20 @@ ins_err_t rym_recv_on_device(
 
     res = _rym_do_recv(ctx, handshake_timeout);
 
+	if(INS_EOK == res)
+	{
+		uint8_t dapInfo[5];
+		dapInfo[0] = 0x1;
+		dapInfo[1] = ctx->filesize;
+		dapInfo[2] = ctx->filesize>>8;
+		dapInfo[3] = ctx->filesize>>16;
+		dapInfo[4] = ctx->filesize>>24;
+		fmc_erase_sector_by_address(USER_DAPFLAG_PAGE_ADDR);
+		fmc_write_8bit_data(USER_DAPFLAG_PAGE_ADDR, 5, (int8_t*)dapInfo);
+	}
+    vPortFree(ctx->buf);
+    _rym_the_ctx = NULL;
+
     return res;
 }
 
@@ -362,5 +411,71 @@ ins_err_t rym_null(void)
     struct rym_ctx rctx;
 
     return rym_recv_on_device(&rctx, NULL, _rym_dummy_write, NULL, 1000);
+}
+
+#ifdef configUse_debug
+extern void imu_irq_unstall(void);
+void rym_fm_update(void)
+{
+
+	do 
+	 	{
+			if(INS_EOK == rym_null())
+			{
+				RTC_BKP5 = CMD_BOOT;
+				vTaskDelay(20);
+				NVIC_SystemReset();
+			}
+			vTaskDelay(20);
+	 	}while(1);
+}
+#endif
+extern TaskHandle_t task_imu_handler;
+extern TaskHandle_t task_gnss_handler;
+extern TaskHandle_t task_imu_comm5_handler;
+extern TaskHandle_t task_gnss_comm2_handler;
+extern TaskHandle_t task_gnss_comm3_handler;
+extern void fm_update_irq_unstall(void);
+void ymodem_give_sem(void)
+{
+	xSemaphoreGive( xYmodemSemaphore);
+}
+
+void ymodem_task(void* arg)
+{
+    
+    for( ;; )
+    {
+        if(pdTRUE == xSemaphoreTake( xYmodemSemaphore, portMAX_DELAY))//pdMS_TO_TICKS(100)
+        {
+        	vTaskSuspend( task_imu_comm5_handler );
+        	vTaskSuspend( task_gnss_comm2_handler );
+        	vTaskSuspend( task_gnss_comm3_handler );
+        	vTaskSuspend( task_gnss_handler );
+        	vTaskSuspend( task_imu_handler );
+			fm_update_irq_unstall();
+        	timer_disable(TIMER0);
+			timer_disable(TIMER3);
+            rym_fm_update();
+        }
+    }
+}
+
+
+void ymodem_task_create(void)
+{
+    xTaskCreate( ymodem_task,
+                 "ymodem_task",
+                 configMINIMAL_STACK_SIZE,
+                 ( void * ) NULL,
+                 tskIDLE_PRIORITY + 3,
+                 NULL );
+}
+
+void ymodem_init(void)
+{
+    xYmodemSemaphore = xSemaphoreCreateBinary();
+    configASSERT( xYmodemSemaphore );
+
 }
 

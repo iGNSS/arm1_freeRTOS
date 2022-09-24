@@ -10,7 +10,7 @@ void FMC_ReadBuffer(EFpgaSpace space, uint32_t addr, uint16_t* pBuffer, uint32_t
 	for (; size != 0; size--)
 	{
 		*pBuffer++ = *(__IO uint16_t*) (base + ADDR_SHIFT(pointer));
-		pointer++;
+		pointer += 8;
 	}
 }
 
@@ -23,7 +23,7 @@ void FMC_WriteBuffer(EFpgaSpace space, uint32_t addr, uint16_t* pBuffer, uint32_
 	for (; size != 0; size--)
 	{
 		*(uint16_t*)(base + ADDR_SHIFT(pointer)) = *pBuffer++;
-		pointer++;
+		pointer += 8;
 	}
 }
 

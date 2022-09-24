@@ -97,47 +97,47 @@ void exmc_sram_init(void)
 	gpio_output_options_set(GPIOD,GPIO_OTYPE_PP,GPIO_OSPEED_50MHZ,GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_9);
 	
 	
-	//è¯»æ—¶åºé…ç½®
-	read_timing.asyn_access_mode		= EXMC_ACCESS_MODE_A;			//æ¨¡å¼Aï¼Œå¼‚æ­¥è®¿é—®SRAM
-	read_timing.asyn_address_setuptime	= 0;							//å¼‚æ­¥è®¿é—®åœ°å€å»ºç«‹æ—¶é—´
-	read_timing.asyn_address_holdtime	= 2;							//å¼‚æ­¥è®¿é—®åœ°å€ä¿æŒæ—¶é—´
-	read_timing.asyn_data_setuptime		= 32;							//å¼‚æ­¥è®¿é—®æ•°æ®å»ºç«‹æ—¶é—´ 160ns
-	read_timing.bus_latency				= 0;							//åŒæ­¥/å¼‚æ­¥è®¿é—®æ€»çº¿å»¶æ—¶æ—¶é—´
-	read_timing.syn_clk_division		= EXMC_SYN_CLOCK_RATIO_2_CLK;  	//åŒæ­¥è®¿é—®æ—¶é’Ÿåˆ†é¢‘ç³»æ•°ï¼ˆä»HCLKä¸­åˆ†é¢‘ï¼‰
-	read_timing.syn_data_latency		= EXMC_DATALAT_2_CLK;			//åŒæ­¥è®¿é—®ä¸­è·å¾—ç¬¬1ä¸ªæ•°æ®æ‰€éœ€è¦çš„ç­‰å¾…å»¶è¿Ÿ
+	//¶ÁÊ±ĞòÅäÖÃ
+	read_timing.asyn_access_mode		= EXMC_ACCESS_MODE_A;			//Ä£Ê½A£¬Òì²½·ÃÎÊSRAM
+	read_timing.asyn_address_setuptime	= 0;							//Òì²½·ÃÎÊµØÖ·½¨Á¢Ê±¼ä
+	read_timing.asyn_address_holdtime	= 2;							//Òì²½·ÃÎÊµØÖ·±£³ÖÊ±¼ä
+	read_timing.asyn_data_setuptime		= 32;							//Òì²½·ÃÎÊÊı¾İ½¨Á¢Ê±¼ä 160ns
+	read_timing.bus_latency				= 0;							//Í¬²½/Òì²½·ÃÎÊ×ÜÏßÑÓÊ±Ê±¼ä
+	read_timing.syn_clk_division		= EXMC_SYN_CLOCK_RATIO_2_CLK;  	//Í¬²½·ÃÎÊÊ±ÖÓ·ÖÆµÏµÊı£¨´ÓHCLKÖĞ·ÖÆµ£©
+	read_timing.syn_data_latency		= EXMC_DATALAT_2_CLK;			//Í¬²½·ÃÎÊÖĞ»ñµÃµÚ1¸öÊı¾İËùĞèÒªµÄµÈ´ıÑÓ³Ù
 
-	//å†™æ—¶åºé…ç½®
-	write_timing.asyn_access_mode		= EXMC_ACCESS_MODE_A;			//æ¨¡å¼Aï¼Œå¼‚æ­¥è®¿é—®SRAM
-	write_timing.asyn_address_setuptime	= 0;							//å¼‚æ­¥è®¿é—®åœ°å€å»ºç«‹æ—¶é—´
-	write_timing.asyn_address_holdtime	= 2;							//å¼‚æ­¥è®¿é—®åœ°å€ä¿æŒæ—¶é—´
-	write_timing.asyn_data_setuptime	= 20;							//å¼‚æ­¥è®¿é—®æ•°æ®å»ºç«‹æ—¶é—´ 100ns
-	write_timing.bus_latency			= 0;							//åŒæ­¥/å¼‚æ­¥è®¿é—®æ€»çº¿å»¶æ—¶æ—¶é—´
-	write_timing.syn_clk_division		= EXMC_SYN_CLOCK_RATIO_15_CLK; 	//åŒæ­¥è®¿é—®æ—¶é’Ÿåˆ†é¢‘ç³»æ•°ï¼ˆä»HCLKä¸­åˆ†é¢‘ï¼‰
-	write_timing.syn_data_latency		= EXMC_DATALAT_2_CLK;			//åŒæ­¥è®¿é—®ä¸­è·å¾—ç¬¬1ä¸ªæ•°æ®æ‰€éœ€è¦çš„ç­‰å¾…å»¶è¿Ÿ
+	//Ğ´Ê±ĞòÅäÖÃ
+	write_timing.asyn_access_mode		= EXMC_ACCESS_MODE_A;			//Ä£Ê½A£¬Òì²½·ÃÎÊSRAM
+	write_timing.asyn_address_setuptime	= 0;							//Òì²½·ÃÎÊµØÖ·½¨Á¢Ê±¼ä
+	write_timing.asyn_address_holdtime	= 2;							//Òì²½·ÃÎÊµØÖ·±£³ÖÊ±¼ä
+	write_timing.asyn_data_setuptime	= 20;							//Òì²½·ÃÎÊÊı¾İ½¨Á¢Ê±¼ä 100ns
+	write_timing.bus_latency			= 0;							//Í¬²½/Òì²½·ÃÎÊ×ÜÏßÑÓÊ±Ê±¼ä
+	write_timing.syn_clk_division		= EXMC_SYN_CLOCK_RATIO_15_CLK; 	//Í¬²½·ÃÎÊÊ±ÖÓ·ÖÆµÏµÊı£¨´ÓHCLKÖĞ·ÖÆµ£©
+	write_timing.syn_data_latency		= EXMC_DATALAT_2_CLK;			//Í¬²½·ÃÎÊÖĞ»ñµÃµÚ1¸öÊı¾İËùĞèÒªµÄµÈ´ıÑÓ³Ù
 
 
 	/* step 2 : configure SDRAM control registers */
-	//Region1é…ç½®
+	//Region1ÅäÖÃ
 
 	sram_init_struct.norsram_region		= EXMC_BANK0_NORSRAM_REGION0;	//Region0
-	sram_init_struct.address_data_mux	= DISABLE;						//åœ°å€ã€æ•°æ®æ€»çº¿å¤šè·¯å¤ç”¨
-	sram_init_struct.memory_type		= EXMC_MEMORY_TYPE_SRAM;		//å‚¨å­˜å™¨ç±»å‹ä¸ºSRAM
-	sram_init_struct.databus_width		= EXMC_NOR_DATABUS_WIDTH_16B;	//æ•°æ®å®½åº¦16ä½
-	sram_init_struct.burst_mode			= DISABLE;						//ç¦ç”¨çªå‘è®¿é—®
-	sram_init_struct.nwait_config		= EXMC_NWAIT_CONFIG_BEFORE;		//ç­‰å¾…è¾“å…¥é…ç½®
-	sram_init_struct.nwait_polarity		= EXMC_NWAIT_POLARITY_HIGH;		//ç­‰å¾…è¾“å…¥ä¿¡å·ä½ç”µå¹³æœ‰æ•ˆ
-	sram_init_struct.wrap_burst_mode	= DISABLE;						//ç¦ç”¨åŒ…çªå‘è®¿é—®
-	sram_init_struct.asyn_wait			= DISABLE;						//ç¦ç”¨å¼‚æ­¥ç­‰å¾…
-	sram_init_struct.extended_mode		= ENABLE;						//ä½¿èƒ½æ‰©å±•æ¨¡å¼
-	sram_init_struct.memory_write		= ENABLE;						//ä½¿èƒ½å†™å…¥å¤–éƒ¨å­˜å‚¨å™¨
-	sram_init_struct.nwait_signal		= DISABLE;						//ç¦ç”¨ç­‰å¾…è¾“å…¥ä¿¡å·
-	sram_init_struct.write_mode			= EXMC_ASYN_WRITE;				//å†™å…¥æ¨¡å¼ä¸ºå¼‚æ­¥å†™å…¥
-	sram_init_struct.read_write_timing	= &read_timing;					//è¯»æ—¶åºé…ç½®
-	sram_init_struct.write_timing		= &write_timing;				//å†™æ—¶åºé…ç½®
-	//åˆå§‹åŒ–Region1
+	sram_init_struct.address_data_mux	= DISABLE;						//µØÖ·¡¢Êı¾İ×ÜÏß¶àÂ·¸´ÓÃ
+	sram_init_struct.memory_type		= EXMC_MEMORY_TYPE_SRAM;		//´¢´æÆ÷ÀàĞÍÎªSRAM
+	sram_init_struct.databus_width		= EXMC_NOR_DATABUS_WIDTH_16B;	//Êı¾İ¿í¶È16Î»
+	sram_init_struct.burst_mode			= DISABLE;						//½ûÓÃÍ»·¢·ÃÎÊ
+	sram_init_struct.nwait_config		= EXMC_NWAIT_CONFIG_BEFORE;		//µÈ´ıÊäÈëÅäÖÃ
+	sram_init_struct.nwait_polarity		= EXMC_NWAIT_POLARITY_HIGH;		//µÈ´ıÊäÈëĞÅºÅµÍµçÆ½ÓĞĞ§
+	sram_init_struct.wrap_burst_mode	= DISABLE;						//½ûÓÃ°üÍ»·¢·ÃÎÊ
+	sram_init_struct.asyn_wait			= DISABLE;						//½ûÓÃÒì²½µÈ´ı
+	sram_init_struct.extended_mode		= ENABLE;						//Ê¹ÄÜÀ©Õ¹Ä£Ê½
+	sram_init_struct.memory_write		= ENABLE;						//Ê¹ÄÜĞ´ÈëÍâ²¿´æ´¢Æ÷
+	sram_init_struct.nwait_signal		= DISABLE;						//½ûÓÃµÈ´ıÊäÈëĞÅºÅ
+	sram_init_struct.write_mode			= EXMC_ASYN_WRITE;				//Ğ´ÈëÄ£Ê½ÎªÒì²½Ğ´Èë
+	sram_init_struct.read_write_timing	= &read_timing;					//¶ÁÊ±ĞòÅäÖÃ
+	sram_init_struct.write_timing		= &write_timing;				//Ğ´Ê±ĞòÅäÖÃ
+	//³õÊ¼»¯Region1
 	exmc_norsram_init(&sram_init_struct);
 
-	//ä½¿èƒ½Region1
+	//Ê¹ÄÜRegion1
 	exmc_norsram_enable(EXMC_BANK0_NORSRAM_REGION0);
 	
 	exmc_norsram_enable(EXMC_BANK0_NORSRAM_REGION1);

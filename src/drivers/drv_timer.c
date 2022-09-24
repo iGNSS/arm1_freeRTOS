@@ -13,18 +13,19 @@
 #include "computerFrameParse.h"
 
 
-#define TIM_BASE_PERIOD	1000
-static uint16_t freqCount = 0;
-static volatile uint16_t reportCount = 0;
 extern QueueHandle_t xCommQueue;
 
-#ifdef	configUse_SystemView
 
-volatile uint32_t FreeRTOSRunTimeTicks;
+volatile uint32_t CompensateTimeTicks = 0;
 
-void ConfigureTimeForRunTimeStats(void)
+void CompensateTimeTicksClr(void)
 {
-    FreeRTOSRunTimeTicks = 0;
+    CompensateTimeTicks = 0;
+}
+
+uint32_t CompensateTimeTicksGet(void)
+{
+    return CompensateTimeTicks;
 }
 
 void timer1_init(void)
@@ -43,7 +44,7 @@ void timer1_init(void)
     timer_initpara.prescaler         = 200 - 1;
     timer_initpara.alignedmode       = TIMER_COUNTER_EDGE;
     timer_initpara.counterdirection  = TIMER_COUNTER_UP;
-    timer_initpara.period            = 100;
+    timer_initpara.period            = 1000-1;
     timer_initpara.clockdivision     = TIMER_CKDIV_DIV1;
     timer_initpara.repetitioncounter = 0;
 
@@ -56,7 +57,7 @@ void timer1_init(void)
     /* enable the update interrupt */
     timer_interrupt_enable( TIMER1, TIMER_INT_UP);
     /* TIMERI counter enable */
-    timer_enable( TIMER1);
+    //timer_enable( TIMER1);
 }
 
 void TIMER1_IRQHandler()
@@ -64,11 +65,10 @@ void TIMER1_IRQHandler()
     if(SET == timer_interrupt_flag_get(TIMER1, TIMER_INT_UP))
     {
         timer_interrupt_flag_clear( TIMER1, TIMER_INT_UP );
-        FreeRTOSRunTimeTicks++;
+        CompensateTimeTicks++;
     }
 }
 
-#endif
 /**************************************************************************************************/
 /*                                                                                                */
 /*                    					timer3_init                                               */
@@ -96,7 +96,7 @@ void timer3_init(void)
     timer_initpara.prescaler         = 200 - 1;
     timer_initpara.alignedmode       = TIMER_COUNTER_EDGE;
     timer_initpara.counterdirection  = TIMER_COUNTER_UP;
-    timer_initpara.period            = TIM_BASE_PERIOD;
+    timer_initpara.period            = TIM_BASE_PERIOD - 1;
     timer_initpara.clockdivision     = TIMER_CKDIV_DIV1;
     timer_initpara.repetitioncounter = 0;
 
@@ -115,30 +115,22 @@ void timer3_init(void)
 void TIMER3_IRQHandler()
 {
     uint8_t status;
-    uint16_t freq;
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     if(SET == timer_interrupt_flag_get(TIMER3, TIMER_INT_UP))
     {
         timer_interrupt_flag_clear( TIMER3, TIMER_INT_UP );
-        freq = comm_read_currentFreq(0);
-        reportCount = TIM_BASE_PERIOD / freq;
-        freqCount++;
-        if(freqCount >= reportCount)
-        {
-            freqCount = 0;
-            status = 1;
-            xQueueSendFromISR(xCommQueue, &status, &xHigherPriorityTaskWoken);
-            portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-        }
+ 
+        status = 1;
+        xQueueSendFromISR(xCommQueue, &status, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+        
     }
 }
 
 void gd32_timer_init(void)
 {
-#ifdef	configUse_SystemView
     timer1_init();
-#endif
     timer3_init();
 }
 

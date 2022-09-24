@@ -39,7 +39,7 @@ typedef struct
     uint8_t hour;                                                            
     uint8_t minute;                                                             
     uint8_t second;                                                            
-    float gpsTime;
+    double gpsTime;
     uint32_t gpsWeek;
 }rtc_update_struct;
 
@@ -55,7 +55,7 @@ COMMON_EXT void adjust_rtc(void);
 }
 #endif
 
-#endif // gd32F20X_40X_SPI_H_INCLUDED
+#endif 
 
 
 

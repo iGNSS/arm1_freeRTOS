@@ -3,10 +3,14 @@
 
 
 #include "insdef.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "config.h"
 
 /* The word "RYM" is stand for "Real-YModem". */
 
-enum rym_code {
+enum rym_code
+{
     RYM_CODE_NONE = 0x00,
     RYM_CODE_SOH  = 0x01,
     RYM_CODE_STX  = 0x02,
@@ -34,6 +38,10 @@ enum rym_code {
 #define RYM_ERR_DSZ  0x74
 /* the transmission is aborted by user */
 #define RYM_ERR_CAN  0x75
+/* wrong answer, wrong ACK or C */
+#define RYM_ERR_ACK  0x76
+/* transmit file invalid */
+#define RYM_ERR_FILE 0x77
 
 /* how many ticks wait for chars between packet. */
 #ifndef RYM_WAIT_CHR_TICK
@@ -53,7 +61,8 @@ enum rym_code {
 #define RYM_END_SESSION_SEND_CAN_NUM  0x07
 #endif
 
-enum rym_stage {
+enum rym_stage
+{
     RYM_STAGE_NONE,
     /* set when C is send */
     RYM_STAGE_ESTABLISHING,
@@ -70,16 +79,15 @@ enum rym_stage {
 };
 
 struct rym_ctx;
-/* when receiving files, the buf will be the data received from ymodem protocol
+/* When receiving files, the buf will be the data received from ymodem protocol
  * and the len is the data size.
  *
- * TODO:
  * When sending files, the len is the buf size in RYM. The callback need to
  * fill the buf with data to send. Returning RYM_CODE_EOT will terminate the
  * transfer and the buf will be discarded. Any other return values will cause
  * the transfer continue.
  */
-typedef enum rym_code (*rym_callback)(struct rym_ctx *ctx, ins_uint8_t *buf, ins_size_t len);
+typedef enum rym_code(*rym_callback)(struct rym_ctx *ctx, ins_uint8_t *buf, ins_size_t len);
 
 /* Currently RYM only support one transfer session(ctx) for simplicity.
  *
@@ -95,11 +103,13 @@ struct rym_ctx
      * happened. */
     enum rym_stage stage;
     /* user could get the error content through this */
-    ins_uint8_t *buf;
+    uint8_t *buf;
+	ins_size_t filesize;
+    SemaphoreHandle_t sem;
 
 };
 
-/** recv a file on device dev with ymodem session ctx.
+/* recv a file on device dev with ymodem session ctx.
  *
  * If an error happens, you can get where it is failed from ctx->stage.
  *
@@ -125,7 +135,37 @@ struct rym_ctx
  * second.
  */
 ins_err_t rym_recv_on_device(struct rym_ctx *ctx,
-        rym_callback on_begin, rym_callback on_data, rym_callback on_end,
-        int handshake_timeout);
+                            rym_callback on_begin, rym_callback on_data, rym_callback on_end,
+                            int handshake_timeout);
+
+/* send a file on device dev with ymodem session ctx.
+ *
+ * If an error happens, you can get where it is failed from ctx->stage.
+ *
+ * @param on_begin The callback will be invoked when the first packet is sent.
+ * This packet often contain file names and the size of the file. It is the
+ * on_begin's responsibility to parse the basic information of the file. The
+ * on_begin can not be NULL.
+ *
+ * @param on_data The callback will be invoked when the data packets is sent.
+ * The callback should read file system and prepare the data packets. The
+ * on_data can not be NULL.
+ *
+ * @param on_end The callback will be invoked when one transmission is
+ * finished. The data should be 128 bytes of NULL. The on_end can not be NULL.
+ *
+ * @param handshake_timeout the timeout when hand shaking. The unit is in
+ * second.
+ */
+ins_err_t rym_send_on_device(struct rym_ctx *ctx,
+                            rym_callback on_begin, rym_callback on_data, rym_callback on_end,
+                            int handshake_timeout);
 
 #endif
+#ifdef configUse_debug
+void rym_fm_update(void);
+#endif
+void ymodem_init(void);
+void ymodem_task_create(void);
+void ymodem_give_sem(void);
+
